@@ -1,0 +1,35 @@
+{
+    "name": "my-crawler",
+    "version": "0.0.1",
+    "type": "module",
+    "description": "This is an example of a Crawlee project.",
+    "dependencies": {
+        "@placemarkio/tokml": "^0.3.3",
+        "apify": "^3.1.7",
+        "crawlee": "^3.4.0",
+        "geojson": "^0.5.0",
+        "geojson-to-kml": "^0.0.1",
+        "node-geocoder": "^4.2.0",
+        "node-html-parser": "^6.1.5",
+        "playwright": "^1.35.1"
+    },
+    "devDependencies": {
+        "@apify/tsconfig": "^0.1.0",
+        "@types/geojson": "^7946.0.10",
+        "@types/node": "^18.0.0",
+        "@types/node-geocoder": "^4.2.1",
+        "ts-node": "^10.8.0",
+        "typescript": "^5.0.0"
+    },
+    "scripts": {
+        "start": "npm run start:dev",
+        "start:prod": "node dist/main.js",
+        "start:dev": "ts-node-esm -T src/main.ts",
+        "startsp:dev": "ts-node-esm -T src/searchpages.ts",
+        "starttokml:dev": "ts-node-esm -T src/tokml.ts",
+        "build": "tsc",
+        "test": "echo \"Error: oops, the actor has no tests yet, sad!\" && exit 1"
+    },
+    "author": "It's not you it's me",
+    "license": "ISC"
+}

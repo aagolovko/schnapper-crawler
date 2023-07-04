@@ -13,6 +13,9 @@
 * convert Article to geoJson, convert geoJson to KML format
 * re-think the architecture for mining, probably use crawlee cloud
 
+
+docker run -d -p 27017:27017 --name kleinanzeigen-mongo mongo:latest
+
 # Getting started with Crawlee
 
 This example uses `PlaywrightCrawler` to recursively crawl https://crawlee.dev using the browser automation library [Playwright](https://playwright.dev).

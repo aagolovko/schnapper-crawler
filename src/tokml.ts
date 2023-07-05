@@ -2,10 +2,11 @@
 
 import {readdirSync, readFileSync, writeFileSync} from "fs";
 import path from "path";
-import {Article} from "./searchpages";
+import {Article} from "./models/article";
 import {FeatureCollection, GeoJSON} from "geojson";
 import { toKML } from "@placemarkio/tokml";
 import {log} from "crawlee";
+import {collections, connectToDatabase} from "./services/database.service.ts";
 
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
@@ -28,34 +29,30 @@ function articleToFeature(article: Article) {
 const articlesDir = 'search-pages-json'
 const files = readdirSync(articlesDir)
 
-files.forEach(file => {
-    const filePath = path.join(articlesDir, file);
+const client = await connectToDatabase()
 
-    const articlesStr = readFileSync(filePath)
-    const articles: Article[] = JSON.parse(articlesStr)
+let articles = await (await collections.articles.find()).toArray();
 
-    const features: [] = []
-
-    for (const article of articles) {
-
-        if (!article.locationGeocoded?.longitude || !article.locationGeocoded?.latitude) {
-            log.warning(`No location for article ${article.href}, skipping`)
-            continue
-        }
-
-        features.push(articleToFeature(article))
+const features: [] = []
+for (const article of articles) {
+    if (!article.locationGeocoded?.longitude || !article.locationGeocoded?.latitude) {
+        log.warning(`No location for article ${article.href}, skipping`)
+        continue
     }
 
-    const geoJson: FeatureCollection = {
-        type: "FeatureCollection",
-        features
-    }
+    features.push(articleToFeature(article))
+}
 
-    const y = toKML(geoJson)
+const geoJson: FeatureCollection = {
+    type: "FeatureCollection",
+    features
+}
 
-    writeFileSync(`kml/${file.split('.').shift()}.kml`, y)
-    writeFileSync(`geo/${file.split('.').shift()}.geo.json`, JSON.stringify(geoJson, null, 4))
-});
+const kml = toKML(geoJson)
+
+writeFileSync(`output/mongodb.kml`, kml)
+writeFileSync(`output/mongodb.geo.json`, JSON.stringify(geoJson, null, 4))
+
 
 
 

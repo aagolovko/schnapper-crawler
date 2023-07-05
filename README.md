@@ -6,6 +6,8 @@
 * generate KML with all results form dB
 * vizualize results on map, click to mark items as "not-interesing" or "interesting"
 
+* generate mongodb UI: https://retool.com/blog/build-a-mongodb-gui-in-minutes/
+
 * convert address to location with google
 * fetch links to the next search pages
 * use json as input for the search

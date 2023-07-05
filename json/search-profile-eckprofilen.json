@@ -1,0 +1,26 @@
+{
+  "title": "Профілі з металу",
+  "keywords": [
+    "systemprofil",
+    "eckprofil",
+    "aluprofil",
+    "alu-eckprofil"
+  ],
+
+  "notes": "Ціну перераховуєм в евро/метр. Треба 45х45 алю профілі, також металічні оцинковані кутики.",
+
+  "searchSchedule": "*",
+
+  "locations": [
+    {
+      "searchArea": "81375 Hadern",
+      "searchDistance": "20",
+      "isActive": true
+    },
+    {
+      "searchArea": "Augsburg - Bayern",
+      "searchDistance": "20",
+      "isActive": true
+    }
+  ]
+}

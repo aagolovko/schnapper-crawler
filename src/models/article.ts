@@ -7,5 +7,9 @@ export interface Article {
     price?: string;
     location: string;
     isShipping?: any;
-    locationGeocoded?: any;
+    locationGeocoded?: any; // TODO: object has own schema, make sense to use it?
+    notes?: string;
+    isFavorit?: boolean; // TODO: how to fix? why is it red? default value possible?
+    isIgnored?: boolean;
+    createdOn: timestamp;
 }

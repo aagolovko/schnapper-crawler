@@ -1,0 +1,29 @@
+{
+  "title": "Цистерни для збору води",
+  "keywords": [
+    "regentonne",
+    "wasserfass",
+    "IBC container",
+    "wassertank",
+    "regentank",
+    "zisterne",
+    "Wasserbehälter"
+  ],
+
+  "notes": "Пластикові ємкості від 200л і до 1000л (хоча можуть бути і винятки)",
+
+  "searchSchedule": "*",
+
+  "locations": [
+    {
+      "searchArea": "81375 Hadern",
+      "searchDistance": "20",
+      "isActive": true
+    },
+    {
+      "searchArea": "Augsburg - Bayern",
+      "searchDistance": "20",
+      "isActive": true
+    }
+  ]
+}

@@ -53,8 +53,7 @@ const kml = toKML(geoJson)
 writeFileSync(`output/mongodb.kml`, kml)
 writeFileSync(`output/mongodb.geo.json`, JSON.stringify(geoJson, null, 4))
 
-
-
+await client.close()
 
 console.log(`Done`)
 

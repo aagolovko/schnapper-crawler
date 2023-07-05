@@ -2,8 +2,12 @@ import * as mongoDB from "mongodb";
 import * as dotenv from "dotenv";
 import {Article} from "../models/article";
 import {MongoClient} from "mongodb";
+import {SearchProfile} from "../models/searchProfile";
 
-export const collections: { articles?: mongoDB.Collection<Article> } = {};
+export const collections: {
+    articles?: mongoDB.Collection<Article>,
+    searchProfiles?: mongoDB.Collection<SearchProfile>
+} = {};
 
 export async function connectToDatabase(): MongoClient {
     // Pulls in the .env file so it can be accessed from process.env. No path as .env is in root, the default location
@@ -23,12 +27,14 @@ export async function connectToDatabase(): MongoClient {
 
     // Connect to the collection with the specific name from .env, found in the database previously specified
     const articlesCollection = db.collection<Article>(process.env.ARTICLES_COLLECTION_NAME);
+    const searchProfilesCollection = db.collection<SearchProfile>('searchProfiles');
 
     // Persist the connection to the Games collection
     collections.articles = articlesCollection;
+    collections.searchProfiles = searchProfilesCollection;
 
     console.log(
-        `Successfully connected to database: ${db.databaseName} and collection: ${articlesCollection.collectionName}`,
+        `Successfully connected to database: ${db.databaseName} and collections`,
     );
 
     return client

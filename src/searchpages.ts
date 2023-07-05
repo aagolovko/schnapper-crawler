@@ -77,6 +77,7 @@ for (const article of articles) {
     const found = await collections.articles.find({href: article.href});
     const dbArticles = await found.toArray();
     if (dbArticles.length == 0) {
+        log.info(`Working on article href ${article.href}`)
         const locationGeocoded = (await geocoder.geocode(article.location)).slice(-1).at(0)
         try {
             article.locationGeocoded = locationGeocoded

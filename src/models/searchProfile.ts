@@ -1,6 +1,6 @@
 import { ObjectId } from "mongodb";
 
-export interface SearchLocation {
+export interface SearchProfile {
     id?: ObjectId;
 
     /**

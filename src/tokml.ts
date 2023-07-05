@@ -26,12 +26,9 @@ function articleToFeature(article: Article) {
     }
 }
 
-const articlesDir = 'search-pages-json'
-const files = readdirSync(articlesDir)
-
 const client = await connectToDatabase()
 
-let articles = await (await collections.articles.find()).toArray();
+let articles = await (await collections.articles.find({})).toArray();
 
 const features: [] = []
 for (const article of articles) {

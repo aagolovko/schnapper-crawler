@@ -11,8 +11,6 @@ export async function crawlForSearchProfile(searchRequest: SearchRequest, search
     // Use the requestHandler to process each of the crawled pages.
     async function requestHandler({request, enqueueLinks, page}) {
 
-        log.info(searchRequest.keyword)
-        const spNumber = searchPageNumber(page.url())
 
         const title = await page.title();
         await page.once('load', () => {
@@ -20,12 +18,15 @@ export async function crawlForSearchProfile(searchRequest: SearchRequest, search
         });
         log.info(`Title of ${request.loadedUrl} is '${title}'`);
 
+        const spNumber = searchPageNumber(page.url())
         if (spNumber == 1) {
             await sleep(1000)
             await inputSearchQuery(page, searchRequest.keyword)
 
             await sleep(1000)
             await clickAcceptCookies(page);
+            await sleep(1000)
+            await clickCloseRegisterPopup(page)
 
             await sleep(1000)
             await inpuSearchArea(page, searchRequest.searchArea)
@@ -55,7 +56,7 @@ export async function crawlForSearchProfile(searchRequest: SearchRequest, search
 
     const crawler = new PlaywrightCrawler(
         {
-            maxRequestsPerCrawl: 1,
+            maxRequestsPerCrawl: 10,
 
             // Uncomment this option to see the browser window.
             headless: false,
@@ -66,6 +67,8 @@ export async function crawlForSearchProfile(searchRequest: SearchRequest, search
 
     // Add first URL to the queue and start the crawl.
     await crawler.run(['https://www.kleinanzeigen.de/']);
+
+    await crawler.teardown()
 }
 
 async function inpuSearchArea(page, searchArea: string) {
@@ -104,6 +107,16 @@ async function clickAcceptCookies(page) {
     }
 }
 
+async function clickCloseRegisterPopup(page) {
+    try {
+        let selector = '//a[@class="j-overlay-close overlay-close"]'
+        let element = await page.locator(selector)
+        await element.click()
+    } catch (e) {
+        log.error(e)
+    }
+}
+
 async function inputSearchDistance(page, searchDistance: string) {
     try {
         // distance arround the area, like "+20km"
@@ -118,9 +131,9 @@ async function inputSearchDistance(page, searchDistance: string) {
         await page.keyboard.press('ArrowDown')  // +5km
         await page.keyboard.press('ArrowDown')  // +10km
         await page.keyboard.press('ArrowDown') // +20km
-        await page.keyboard.press('ArrowDown') // +30km
-        await page.keyboard.press('ArrowDown') // +50km
-        await page.keyboard.press('ArrowDown') // +100km
+        // await page.keyboard.press('ArrowDown') // +30km
+        // await page.keyboard.press('ArrowDown') // +50km
+        // await page.keyboard.press('ArrowDown') // +100km
         await page.keyboard.press('Enter')
     } catch (e) {
         log.error(e)

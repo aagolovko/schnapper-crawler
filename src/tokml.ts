@@ -28,7 +28,7 @@ function articleToFeature(article: Article) {
 
 const client = await connectToDatabase()
 
-let articles = await (await collections.articles.find({})).toArray();
+let articles = await (await collections.articles.find({isIgnored: null})).toArray();
 
 const features: [] = []
 for (const article of articles) {

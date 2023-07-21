@@ -7,19 +7,21 @@
         "@placemarkio/tokml": "^0.3.3",
         "apify": "^3.1.7",
         "crawlee": "^3.4.0",
+        "dotenv": "^16.3.1",
         "geojson": "^0.5.0",
         "geojson-to-kml": "^0.0.1",
+        "mongodb": "^5.6.0",
         "node-geocoder": "^4.2.0",
         "node-html-parser": "^6.1.5",
         "playwright": "^1.35.1",
-        "mongodb": "^5.6.0",
-        "dotenv": "^16.3.1"
+        "uuid": "^9.0.0"
     },
     "devDependencies": {
         "@apify/tsconfig": "^0.1.0",
         "@types/geojson": "^7946.0.10",
         "@types/node": "^18.0.0",
         "@types/node-geocoder": "^4.2.1",
+        "@types/uuid": "^9.0.2",
         "ts-node": "^10.8.0",
         "typescript": "^5.0.0"
     },

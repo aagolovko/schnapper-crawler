@@ -4,13 +4,27 @@ import {PlaywrightCrawlerOptions} from "@crawlee/playwright/internals/playwright
 import {log} from "crawlee";
 import {searchPageNumber, sleep} from "./utils.ts";
 import {SearchRequest} from "./models/searchRequest";
-
+import {RequestQueue} from "apify";
+import {v4 as uuidv4} from 'uuid';
 
 export async function crawlForSearchProfile(searchRequest: SearchRequest, searchPageHandler: (str: string, spHref: string) => void) {
+    let uuid = uuidv4()
+    const requestQueue = await RequestQueue.open(`rq-${uuid}`)
+
+    const crawlerConfig = {
+        maxRequestsPerCrawl: 10,
+
+        requestQueue,
+
+        // Uncomment this option to see the browser window.
+        headless: false,
+
+        requestHandler
+    } as PlaywrightCrawlerOptions;
+    const crawler = new PlaywrightCrawler(crawlerConfig);
 
     // Use the requestHandler to process each of the crawled pages.
     async function requestHandler({request, enqueueLinks, page}) {
-
 
         const title = await page.title();
         await page.once('load', () => {
@@ -54,20 +68,8 @@ export async function crawlForSearchProfile(searchRequest: SearchRequest, search
         await sleep(1000)
     }
 
-    const crawler = new PlaywrightCrawler(
-        {
-            maxRequestsPerCrawl: 10,
-
-            // Uncomment this option to see the browser window.
-            headless: false,
-
-            requestHandler
-        } as PlaywrightCrawlerOptions
-    );
-
     // Add first URL to the queue and start the crawl.
     await crawler.run(['https://www.kleinanzeigen.de/']);
-
     await crawler.teardown()
 }
 

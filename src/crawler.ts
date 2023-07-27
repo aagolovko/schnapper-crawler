@@ -33,7 +33,7 @@ export async function crawlForSearchProfile(searchRequest: SearchRequest, search
         log.info(`Title of ${request.loadedUrl} is '${title}'`);
 
         const spNumber = searchPageNumber(page.url())
-        if (spNumber == 1) {
+        if (spNumber == 0) {
             await sleep(1000)
             await inputSearchQuery(page, searchRequest.keyword)
 
@@ -61,7 +61,7 @@ export async function crawlForSearchProfile(searchRequest: SearchRequest, search
 
         // Find a link to the next page and enqueue it if it exists.
         await enqueueLinks({
-            limit: 3,
+            limit: 10,
             selector: '//div[@class="pagination-pages"]/a',
         });
 
@@ -133,7 +133,7 @@ async function inputSearchDistance(page, searchDistance: string) {
         await page.keyboard.press('ArrowDown')  // +5km
         await page.keyboard.press('ArrowDown')  // +10km
         await page.keyboard.press('ArrowDown') // +20km
-        // await page.keyboard.press('ArrowDown') // +30km
+        await page.keyboard.press('ArrowDown') // +30km
         // await page.keyboard.press('ArrowDown') // +50km
         // await page.keyboard.press('ArrowDown') // +100km
         await page.keyboard.press('Enter')

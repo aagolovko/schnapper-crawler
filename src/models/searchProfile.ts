@@ -45,4 +45,6 @@ export interface SearchProfile {
      * use all other active locations as found in Mongo.
      */
     locations?: SearchLocation[];
+
+    maxPrice?: number;
 }

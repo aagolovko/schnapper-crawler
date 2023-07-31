@@ -14,6 +14,9 @@ let counter = 0
 
 const searchRequests: any = []
 for (const searchProfile of searchProfiles) {
+
+    log.info(`Found search profile '${searchProfile.title}'`)
+
     for (const searchKeyword of searchProfile.keywords) {
         for (const searchLocation of searchProfile.locations) {
             // DEBUG HELPER
@@ -25,6 +28,7 @@ for (const searchProfile of searchProfiles) {
                 keyword: searchKeyword,
                 searchArea: searchLocation.searchArea,
                 searchDistance: searchLocation.searchDistance,
+                maxPrice: searchProfile.maxPrice
             }
 
             searchRequests.push(searchRequest)

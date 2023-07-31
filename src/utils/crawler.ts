@@ -31,12 +31,13 @@ export async function crawlForSearchProfile(searchRequest: SearchRequest, search
         const spNumber = searchPageNumber(page.url())
         if (spNumber == 0) {
             await sleep(1000)
-            await inputSearchQuery(page, searchRequest.keyword)
-
             await sleep(1000)
             await clickAcceptCookies(page);
+
             await sleep(1000)
             await clickCloseRegisterPopup(page)
+
+            await inputSearchQuery(page, searchRequest.keyword)
 
             await sleep(1000)
             await inpuSearchArea(page, searchRequest.searchArea)
@@ -46,6 +47,11 @@ export async function crawlForSearchProfile(searchRequest: SearchRequest, search
 
             await sleep(1000)
             await submitSearch(page);
+
+            if (searchRequest.maxPrice) {
+                await inputMaxPrice(page, searchRequest.maxPrice)
+            }
+
 
             await sleep(1000)
         } else {
@@ -91,6 +97,21 @@ async function inputSearchQuery(page, keyword: string) {
     }
 }
 
+async function inputMaxPrice(page, maxPrice: number) {
+    try {
+        // input field for queries
+        let selector = '//input[@id="srchrslt-brwse-price-max"]'
+        let element = await page.waitForSelector(selector);
+        await element.type(`${maxPrice}`)
+
+        let selectorBtn = '//input[@id="srchrslt-brwse-price-max"]/parent::fieldset/parent::div/button'
+        let elementBtn = await page.waitForSelector(selectorBtn);
+        await elementBtn.click()
+    } catch (e) {
+        log.error(e)
+    }
+}
+
 async function clickAcceptCookies(page) {
     try {
         // alternative way to "allow cookies" is to open other page
@@ -98,7 +119,7 @@ async function clickAcceptCookies(page) {
 
         // >> close "accept cookies" only now, after text for search is entered
         let selector = '//button[@id="gdpr-banner-accept"]'
-        let element = await page.locator(selector)
+        let element = await page.waitForSelector(selector)
         await element.click()
     } catch (e) {
         log.error(e)
@@ -108,7 +129,7 @@ async function clickAcceptCookies(page) {
 async function clickCloseRegisterPopup(page) {
     try {
         let selector = '//a[@class="j-overlay-close overlay-close"]'
-        let element = await page.locator(selector)
+        let element = await page.waitForSelector(selector)
         await element.click()
     } catch (e) {
         log.error(e)

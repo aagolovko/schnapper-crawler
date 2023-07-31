@@ -2,7 +2,7 @@
 import {log, PlaywrightCrawler} from 'crawlee';
 import {PlaywrightCrawlerOptions} from "@crawlee/playwright/internals/playwright-crawler";
 import {searchPageNumber, sleep} from "./utils.ts";
-import {SearchRequest} from "./models/searchRequest";
+import {SearchRequest} from "../models/searchRequest";
 import {RequestQueue} from "apify";
 import {v4 as uuidv4} from 'uuid';
 
@@ -49,7 +49,7 @@ export async function crawlForSearchProfile(searchRequest: SearchRequest, search
 
             await sleep(1000)
         } else {
-            log.info('Navi to the next search pages')
+            // DO NOTHING
         }
 
         const content = await page.content()

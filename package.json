@@ -25,9 +25,9 @@
     },
     "scripts": {
         "start": "npm run start:dev",
-        "start:prod": "node dist/main.js",
-        "start:dev": "ts-node-esm -T src/main.ts",
-        "startsp:dev": "ts-node-esm -T src/searchpages.ts",
+        "start:prod": "node dist/crawling.js",
+        "start:dev": "ts-node-esm -T src/crawling.ts",
+        "startsp:dev": "ts-node-esm -T src/parsing.ts",
         "build": "tsc",
         "test": "echo \"Error: oops, the actor has no tests yet, sad!\" && exit 1"
     },

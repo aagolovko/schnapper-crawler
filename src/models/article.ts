@@ -5,7 +5,8 @@ export interface Article {
     hrefImage: string;
     title?: string;
     id?: ObjectId;
-    price?: string;
+    price?: string; // Examples: VB, 20 € VB, zum verschenken
+    priceEur?: number;
     location: string;
     isShipping?: any;
     locationGeocoded?: any; // TODO: object has own schema, make sense to use it?

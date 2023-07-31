@@ -1,8 +1,9 @@
 import * as mongoDB from "mongodb";
+import {MongoClient} from "mongodb";
 import * as dotenv from "dotenv";
 import {Article} from "../models/article";
-import {MongoClient} from "mongodb";
 import {SearchProfile} from "../models/searchProfile";
+import {log} from "crawlee";
 
 export const collections: {
     articles?: mongoDB.Collection<Article>,
@@ -33,9 +34,7 @@ export async function connectToDatabase(): MongoClient {
     collections.articles = articlesCollection;
     collections.searchProfiles = searchProfilesCollection;
 
-    console.log(
-        `Successfully connected to database: ${db.databaseName} and collections`,
-    );
+    log.info(`Successfully connected to database: ${db.databaseName} and collections`);
 
     return client
 }

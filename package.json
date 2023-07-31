@@ -4,12 +4,10 @@
     "type": "module",
     "description": "This is an example of a Crawlee project.",
     "dependencies": {
-        "@placemarkio/tokml": "^0.3.3",
         "apify": "^3.1.7",
         "crawlee": "^3.4.0",
         "dotenv": "^16.3.1",
         "geojson": "^0.5.0",
-        "geojson-to-kml": "^0.0.1",
         "mongodb": "^5.6.0",
         "node-geocoder": "^4.2.0",
         "node-html-parser": "^6.1.5",
@@ -30,7 +28,6 @@
         "start:prod": "node dist/main.js",
         "start:dev": "ts-node-esm -T src/main.ts",
         "startsp:dev": "ts-node-esm -T src/searchpages.ts",
-        "starttokml:dev": "ts-node-esm -T src/tokml.ts",
         "build": "tsc",
         "test": "echo \"Error: oops, the actor has no tests yet, sad!\" && exit 1"
     },

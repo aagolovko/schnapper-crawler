@@ -1,7 +1,6 @@
 // For more information, see https://crawlee.dev/
-import {PlaywrightCrawler} from 'crawlee';
+import {log, PlaywrightCrawler} from 'crawlee';
 import {PlaywrightCrawlerOptions} from "@crawlee/playwright/internals/playwright-crawler";
-import {log} from "crawlee";
 import {searchPageNumber, sleep} from "./utils.ts";
 import {SearchRequest} from "./models/searchRequest";
 import {RequestQueue} from "apify";
@@ -27,9 +26,7 @@ export async function crawlForSearchProfile(searchRequest: SearchRequest, search
     async function requestHandler({request, enqueueLinks, page}) {
 
         const title = await page.title();
-        await page.once('load', () => {
-            console.log('Page loaded!')
-        });
+        await page.once('load', () => { });
         log.info(`Title of ${request.loadedUrl} is '${title}'`);
 
         const spNumber = searchPageNumber(page.url())

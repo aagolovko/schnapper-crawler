@@ -4,14 +4,14 @@ import {parse} from 'node-html-parser';
 
 import {log} from "crawlee";
 import {Article} from 'models/article';
-import {readdir, readdirSync, readFileSync, readSync, writeFileSync} from "fs";
-import path from "path";
 import * as fs from "fs";
+import {readdirSync} from "fs";
+import path from "path";
 
 import NodeGeocoder from 'node-geocoder';
-import node_geocoder from "node-geocoder";
+import node_geocoder from 'node-geocoder';
 import {Article} from "./models/article";
-import {connectToDatabase, collections} from "./services/database.service.ts";
+import {collections, connectToDatabase} from "./services/database.service.ts";
 
 const options: node_geocoder.Options = {
     provider: 'openstreetmap'
@@ -45,6 +45,7 @@ async function parseSearchPage(searchPagePath: string): Article[] {
         const hrefImage = el.querySelector('img')?.getAttribute('src')
 
         const price = el.querySelector('.aditem-main--middle--price-shipping--price')?.innerText?.replace(/\n/gi, ' ').replace(/\s+/gi, ' ').trim()
+        const priceEur = price ? parseInt(price.match(/\d/g)?.join('')) : 0
         const isShippingStr = el.querySelector('.aditem-main--middle--price-shipping--shipping')?.innerText?.replace(/\n/gi, ' ').replace(/\s+/gi, ' ').trim()
         const isShipping = isShippingStr != undefined ? true : false
 
@@ -55,7 +56,8 @@ async function parseSearchPage(searchPagePath: string): Article[] {
             href,
             hrefImage,
             location,
-            locationGeocoded: undefined,
+            priceEur,
+            locationGeocoded: undefined, // calculated during saving to db, if articly not in db yet
             price,
             isShipping,
             title,
@@ -78,14 +80,13 @@ const client = await connectToDatabase()
 
 for (const article of articles) {
     const found = await collections.articles.findOne({href: article.href});
-    // const found = await collections.articles.findOne({href: "/s-anzeige/garantia-wasserhahn-auslaufset-regentonne-dichtungen/2410476962-89-6542"})
 
     // Note: modify the node where the image is set
-    const forceUpdate = true
+    const forceUpdate = false
 
     if (found && forceUpdate) {
         try {
-            await collections.articles?.updateOne({_id: found._id}, { $set: { hrefImage: article.hrefImage } })
+            await collections.articles?.updateOne({_id: found._id}, { $set: { priceEur: article.priceEur } })
         } catch (error) {
             log.error(`Failed ${error}`)
         }
@@ -132,8 +133,4 @@ log.info(`Total of ${totalArticles} in db now`)
 log.info(``)
 
 await client.close()
-
-// writeFileSync('search-pages-json/articles.json', JSON.stringify(articles, null, 4))
-log.info(`Done`)
-
 

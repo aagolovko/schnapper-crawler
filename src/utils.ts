@@ -1,10 +1,3 @@
-import { PlaywrightCrawler, Dataset } from 'crawlee';
-import {PlaywrightCrawlerOptions} from "@crawlee/playwright/internals/playwright-crawler";
-import { writeFileSync } from 'fs';
-import {connectToDatabase, collections} from "./services/database.service.ts";
-import {log} from "crawlee";
-import {SearchProfile} from "./models/searchProfile";
-
 export const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
 export const searchPageNumber = (url: string) => {

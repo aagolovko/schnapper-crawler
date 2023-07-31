@@ -27,7 +27,6 @@ export async function crawlForSearchProfile(searchRequest: SearchRequest, search
 
         const title = await page.title();
         await page.once('load', () => { });
-        log.info(`Title of ${request.loadedUrl} is '${title}'`);
 
         const spNumber = searchPageNumber(page.url())
         if (spNumber == 0) {

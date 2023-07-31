@@ -15,6 +15,7 @@ let counter = 0
 for (const searchProfile of searchProfiles) {
     for (const searchKeyword of searchProfile.keywords) {
         for (const searchLocation of searchProfile.locations) {
+            // DEBUG HELPER
             // if (counter >= 2) {
             //     log.info("Leaving with break")
             //     break
@@ -25,7 +26,7 @@ for (const searchProfile of searchProfiles) {
                 searchDistance: searchLocation.searchDistance,
             }
 
-            log.info(JSON.stringify(searchRequest))
+            log.info(`Search request ${JSON.stringify(searchRequest)}`)
             await crawlForSearchProfile(searchRequest, (content: string, spHref: string) => {
                 const splitted = spHref.split('/')
                 const fileName = splitted.slice(3).join('-').replaceAll(':', '-')

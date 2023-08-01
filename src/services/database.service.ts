@@ -4,10 +4,12 @@ import * as dotenv from "dotenv";
 import {Article} from "../models/article";
 import {SearchProfile} from "../models/searchProfile";
 import {log} from "crawlee";
+import {SearchRequest} from "../models/searchRequest";
 
 export const collections: {
     articles: mongoDB.Collection<Article>,
     searchProfiles: mongoDB.Collection<SearchProfile>
+    searchRequests: mongoDB.Collection<SearchRequest>
 } = {};
 
 export async function connectToDatabase(): MongoClient {
@@ -29,10 +31,12 @@ export async function connectToDatabase(): MongoClient {
     // Connect to the collection with the specific name from .env, found in the database previously specified
     const articlesCollection = db.collection<Article>(process.env.ARTICLES_COLLECTION_NAME);
     const searchProfilesCollection = db.collection<SearchProfile>('searchProfiles');
+    const searchRequestsCollection = db.collection<SearchRequest>('searchRequests');
 
     // Persist the connection to the Games collection
     collections.articles = articlesCollection;
     collections.searchProfiles = searchProfilesCollection;
+    collections.searchRequests = searchRequestsCollection;
 
     log.info(`Successfully connected to database: ${db.databaseName} and collections`);
 

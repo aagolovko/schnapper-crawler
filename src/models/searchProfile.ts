@@ -1,6 +1,7 @@
 import {ObjectId} from "mongodb";
 
 export interface SearchProfile {
+    // TODO: remove, we have _id
     id?: ObjectId;
 
     /**
@@ -47,6 +48,4 @@ export interface SearchProfile {
     locations?: SearchLocation[];
 
     maxPrice?: number;
-
-    lastSearch?: timestamp;
 }

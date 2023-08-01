@@ -13,7 +13,7 @@ export async function crawlForSearchProfile(searchRequest: SearchRequest, search
     const requestQueue = await RequestQueue.open(`rq-${uuid}`)
 
     const crawlerConfig = {
-        maxRequestsPerCrawl: 10,
+        maxRequestsPerCrawl: 20,
 
         requestQueue,
 
@@ -27,7 +27,6 @@ export async function crawlForSearchProfile(searchRequest: SearchRequest, search
     // Use the requestHandler to process each of the crawled pages.
     async function requestHandler({request, enqueueLinks, page}) {
 
-        const title = await page.title();
         await page.once('load', () => { });
 
         const spNumber = searchPageNumber(page.url())

@@ -20,7 +20,7 @@ const client = await connectToDatabase()
 const found = await collections.searchProfiles.find({});
 const searchProfiles = await found.toArray();
 
-let counter = 0
+let searchRequestsCounter = 0
 
 const STOP_CRAWLING = true
 
@@ -54,6 +54,14 @@ log.info(``)
 log.info(`Going to issue for ${searchRequests.length} search requests`)
 log.info(``)
 log.info(``)
+
+const updateOrInsert = async (found: any, object: any, updatedFields: any) => {
+    if (found && found._id) {
+        await collections.searchRequests.updateOne({_id: found?._id}, {$set: updatedFields})
+    } else {
+        await collections.searchRequests.insertOne({...object, ...updatedFields})
+    }
+}
 
 async function handleArticle(found, article) {
     if (found) {
@@ -102,13 +110,6 @@ for (const searchProfile of searchProfiles) {
 
     log.info(`Found search profile '${searchProfile.title}'`)
 
-    const diffInMinutes: number = (Date.now() - searchProfile.lastSearch)/(1000 * 60)
-    const doSearch = !searchProfile.lastSearch || diffInMinutes > MIN_TIME_BETWEEN_SEARCHES_MINUTES
-    if (!doSearch) {
-        log.info(`Search profile '${searchProfile.title}' skipped, cralled ${diffInMinutes.toFixed()} minutest ago`)
-        continue
-    }
-
     for (const searchKeyword of searchProfile.keywords) {
         for (const searchLocation of searchProfile.locations) {
             const searchRequest = {
@@ -118,16 +119,34 @@ for (const searchProfile of searchProfiles) {
                 maxPrice: searchProfile.maxPrice
             }
 
-            counter++
+            const found = await collections.searchRequests.findOne(searchRequest);
 
-            log.info(`[${counter.toString().padStart(3, '0')}/${searchRequests.length.toString().padStart(3, '0')}]: Search request ${JSON.stringify(searchRequest)}`)
+            const diffInMinutesSearchRequest: number = found?.lastSearch ? ((Date.now() - found?.lastSearch)/(1000 * 60)).toFixed() : 0
+            const doSearchSearchRequest = !found?.lastSearch || diffInMinutesSearchRequest > MIN_TIME_BETWEEN_SEARCHES_MINUTES
+            if (!doSearchSearchRequest) {
+                log.info(`Search profile '${searchRequest}' skipped, crawled ${diffInMinutesSearchRequest} minutest ago`)
+                continue
+            }
+
+            searchRequestsCounter++
+
+            let totalArticlesBySearchRequest: number
+            log.info(`[${searchRequestsCounter.toString().padStart(3, '0')}/${searchRequests.length.toString().padStart(3, '0')}]: Search request ${JSON.stringify(searchRequest)}`)
             await crawlForSearchProfile(searchRequest, async (content: string, spHref: string): boolean => {
                 const splitted = spHref.split('/')
                 const fileName = splitted.length == 0 ? 'unknown' : splitted.slice(3).join('-').replaceAll(':', '-')
                 let searchPageFile = `search-pages/${fileName}.html`;
                 writeFileSync(searchPageFile, content);
 
-                const articles: Article[] = await parseSearchPage(searchPageFile);
+                const articles: Article[] = await parseSearchPage(searchPageFile, (from, to, totalFoundCounter) => {
+                    log.info(`Processing articles [${from} - ${to}] of ${totalFoundCounter}`)
+                    if (!totalArticlesBySearchRequest) {
+                        totalArticlesBySearchRequest = totalFoundCounter
+                    }
+                });
+
+                await updateOrInsert(found, searchRequest, {articlesFound: totalArticlesBySearchRequest})
+
                 let newArticlesCounter = 0
                 for (const article of articles) {
                     const found = await collections.articles.findOne({href: article.href});
@@ -145,15 +164,9 @@ for (const searchProfile of searchProfiles) {
                 return !STOP_CRAWLING
             })
 
-
-            await sleep(5000)
+            await updateOrInsert(found, searchRequest, {lastSearch: Date.now()})
+            await sleep(1000)
         }
-    }
-
-    try {
-        await collections.searchProfiles?.updateOne({_id: searchProfile._id}, {$set: {lastSearch: Date.now()}})
-    } catch (error) {
-        log.error(`Failed ${error}`)
     }
 }
 

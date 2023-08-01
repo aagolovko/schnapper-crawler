@@ -6,24 +6,23 @@ import {log} from "crawlee";
 import {Article} from '../models/article';
 import * as fs from "fs";
 
-const sleep = (ms) => new Promise(r => setTimeout(r, ms));
-
-export async function parseSearchPage(searchPagePath: string): Article[] {
+export async function parseSearchPage(searchPagePath: string, metaInfoHandler?: (from: number, to: number, totalFoundCounter: number) => void): Article[] {
     const searchPageContent = fs.readFileSync(searchPagePath, 'utf8')
 
     log.info(`Content of ${searchPagePath}`);
 
+
     const root = parse(searchPageContent)
+    const summary = root.querySelector('.breadcrump-summary')?.innerText?.match(/(\d+)/gm).slice(0, 3)
+    if (summary && summary.length == 3 && metaInfoHandler) {
+        metaInfoHandler(Number(summary[0]), Number(summary[1]), Number(summary[2]))
+    }
     const articles = root.querySelectorAll('article')
 
     const articlesJson: Article[] = []
 
     for (const el of articles) {
 
-        sleep(1000)
-
-        // example:
-        // const location = "81475 München - Thalk.Obersendl.-Forsten-Fürstenr.-Solln"
         const location: String = el.querySelector('div .aditem-main--top--left i')?.nextSibling.innerText?.replace(/\n/gi, ' ').replace(/\s+/gi, ' ').replace(/\(.*\)+/gi, ' ').trim()
 
         const createdOn = el.querySelector('div .aditem-main--top--right i')?.nextSibling.innerText?.replace(/\n/gi, ' ').replace(/\s+/gi, ' ').trim()

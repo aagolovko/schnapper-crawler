@@ -27,7 +27,7 @@
         "start": "npm run start:dev",
         "start:prod": "node dist/crawling.js",
         "start:dev": "ts-node-esm -T src/crawling.ts",
-        "startsp:dev": "ts-node-esm -T src/parsing.ts",
+        "startsp:dev": "ts-node-esm -T src/utils/parser.ts",
         "build": "tsc",
         "test": "echo \"Error: oops, the actor has no tests yet, sad!\" && exit 1"
     },

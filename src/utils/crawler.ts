@@ -6,6 +6,8 @@ import {SearchRequest} from "../models/searchRequest";
 import {RequestQueue} from "apify";
 import {v4 as uuidv4} from 'uuid';
 
+const PAUSE_MS = 1000
+
 export async function crawlForSearchProfile(searchRequest: SearchRequest, searchPageHandler: (str: string, spHref: string) => void) {
     let uuid = uuidv4()
     const requestQueue = await RequestQueue.open(`rq-${uuid}`)
@@ -30,22 +32,22 @@ export async function crawlForSearchProfile(searchRequest: SearchRequest, search
 
         const spNumber = searchPageNumber(page.url())
         if (spNumber == 0) {
-            await sleep(1000)
-            await sleep(1000)
+            await sleep(PAUSE_MS)
+            await sleep(PAUSE_MS)
             await clickAcceptCookies(page);
 
-            await sleep(1000)
+            await sleep(PAUSE_MS)
             await clickCloseRegisterPopup(page)
 
             await inputSearchQuery(page, searchRequest.keyword)
 
-            await sleep(1000)
+            await sleep(PAUSE_MS)
             await inpuSearchArea(page, searchRequest.searchArea)
 
-            await sleep(1000)
+            await sleep(PAUSE_MS)
             await inputSearchDistance(page, searchRequest.searchDistance)
 
-            await sleep(1000)
+            await sleep(PAUSE_MS)
             await submitSearch(page);
 
             if (searchRequest.maxPrice) {
@@ -53,21 +55,23 @@ export async function crawlForSearchProfile(searchRequest: SearchRequest, search
             }
 
 
-            await sleep(1000)
+            await sleep(PAUSE_MS)
         } else {
             // DO NOTHING
         }
 
         const content = await page.content()
-        searchPageHandler(content, page.url())
+        const crawlNext = searchPageHandler(content, page.url())
 
-        // Find a link to the next page and enqueue it if it exists.
-        await enqueueLinks({
-            limit: 10,
-            selector: '//div[@class="pagination-pages"]/a',
-        });
+        if (crawlNext) {
+            // Find a link to the next page and enqueue it if it exists.
+            await enqueueLinks({
+                limit: 10,
+                selector: '//div[@class="pagination-pages"]/a',
+            });
+        }
 
-        await sleep(1000)
+        await sleep(PAUSE_MS)
     }
 
     // Add first URL to the queue and start the crawl.
@@ -132,7 +136,7 @@ async function clickCloseRegisterPopup(page) {
         let element = await page.waitForSelector(selector)
         await element.click()
     } catch (e) {
-        log.error(e)
+        log.debug(e)
     }
 }
 

@@ -47,4 +47,6 @@ export interface SearchProfile {
     locations?: SearchLocation[];
 
     maxPrice?: number;
+
+    lastSearch?: timestamp;
 }

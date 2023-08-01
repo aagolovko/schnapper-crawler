@@ -6,8 +6,8 @@ import {SearchProfile} from "../models/searchProfile";
 import {log} from "crawlee";
 
 export const collections: {
-    articles?: mongoDB.Collection<Article>,
-    searchProfiles?: mongoDB.Collection<SearchProfile>
+    articles: mongoDB.Collection<Article>,
+    searchProfiles: mongoDB.Collection<SearchProfile>
 } = {};
 
 export async function connectToDatabase(): MongoClient {

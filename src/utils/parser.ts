@@ -22,8 +22,8 @@ export async function parseSearchPage(searchPagePath: string, metaInfoHandler?: 
         const href = el.querySelector('.text-module-begin a')?.getAttribute('href')
         log.debug(`Handling article with href ${href}`);
 
-        const hrefImageTry1 = el.querySelector('img')?.getAttribute('src')
-        const hrefImageTry2 = el.querySelector('.imagebox')?.getAttribute('data-imgsrcretina')
+        const hrefImageTry1 = el.querySelector('img')?.getAttribute('src')?.replace(/ 2x/gi, '').trim()
+        const hrefImageTry2 = el.querySelector('.imagebox')?.getAttribute('data-imgsrcretina')?.replace(/ 2x/gi, '').trim()
         const hrefImage = hrefImageTry2 ? hrefImageTry2 : hrefImageTry1
         if (!hrefImage) {
             log.debug(`Failed to resolve hrefImage for ${href}`);

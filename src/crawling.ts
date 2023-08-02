@@ -20,13 +20,21 @@ const client = await connectToDatabase()
 const found = await collections.searchProfiles.find({});
 const searchProfiles = await found.toArray();
 
+
+// NOTE: use the code to convert/update fields of articles
+// const updateMe: Article[] = await (await collections.articles.find({hrefImage: {$regex: " 2x"}})).toArray();
+// for (const a of updateMe) {
+//     const hrefImageNew = a.hrefImage?.replace(/ 2x/gi, '').trim()
+//     await collections.articles.updateOne({_id: a._id}, {$set: {hrefImage: hrefImageNew}})
+// }
+
 let searchRequestsCounter = 0
 
 const STOP_CRAWLING = true
 
 /* use next variables for debugging. The array containes keywords, which are
 * only allowed to be used in searches.*/
-const FORCE_UPDATE = true
+const FORCE_UPDATE = false
 const DEBUG_SEARCH_KEYWORDS: string[] = [] // ['balken']
 export const DO_HEADLESS = true
 

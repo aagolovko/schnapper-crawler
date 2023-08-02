@@ -25,7 +25,7 @@ let searchRequestsCounter = 0
 const STOP_CRAWLING = true
 
 // set true, if you want to update already existing articles
-const FORCE_UPDATE = false
+const FORCE_UPDATE = true
 
 // for search profile
 const MIN_TIME_BETWEEN_SEARCHES_MINUTES = 60
@@ -49,9 +49,11 @@ for (const searchProfile of searchProfiles) {
     }
 }
 
+const startDate = new Date()
 log.info(``)
 log.info(``)
 log.info(`Going to issue for ${searchRequests.length} search requests`)
+log.info(`Start: ${startDate.toLocaleString()}`);
 log.info(``)
 log.info(``)
 
@@ -63,46 +65,51 @@ const updateOrInsert = async (found: any, object: any, updatedFields: any) => {
     }
 }
 
+async function geocodeLocation(location: string) {
+    const locationSplitted = location.split('-')
+
+    let locationStr = (locationSplitted.length > 0) ? locationSplitted[0].trim() : location
+    let locationGeocoded = (await geocoder.geocode(locationStr)).slice(-1).at(0)
+
+    if (locationStr && !locationGeocoded) {
+        locationStr = locationStr.split(' ')[0].trim()
+        locationGeocoded = (await geocoder.geocode(`${locationStr} Germany`)).slice(-1).at(0)
+    }
+
+    if (!locationGeocoded) {
+        log.warning(`Failed to resolve location for '${locationStr}', derived from '${location}'`)
+    }
+
+    return locationGeocoded
+}
+
 async function handleArticle(found, article) {
     if (found) {
-        try {
-            await collections.articles?.updateOne({_id: found._id}, {$set: {priceEur: article.priceEur}})
-        } catch (error) {
-            log.error(`Failed ${error}`)
-        }
-    } else if (found && found.locationGeocoded == undefined) {
-        log.info(`Update article with geolocation, href ${article.href}`)
+        if (FORCE_UPDATE) {
+            log.info(`Update (force) article, href ${article.href}`)
 
-        const locationSplitted = article.location.split('-')
+            if (!found.locationGeocoded) {
+                const locationGeocoded = await geocodeLocation(article.location)
+                article.locationGeocoded = locationGeocoded
+            }
 
-        let locationStr = (locationSplitted.length > 0) ? locationSplitted[0].trim() : article.location
-        let locationGeocoded = (await geocoder.geocode(locationStr)).slice(-1).at(0)
-
-        if (!locationGeocoded && locationStr) {
-            locationStr = locationStr.split(' ')[0].trim()
-            locationGeocoded = (await geocoder.geocode(`${locationStr} Germany`)).slice(-1).at(0)
-        }
-
-        if (locationGeocoded) {
             try {
-                await collections.articles?.updateOne({_id: found._id}, {$set: {locationGeocoded}})
+                await collections.articles?.updateOne({_id: found._id}, {$set: {...found, ...article}})
             } catch (error) {
                 log.error(`Failed ${error}`)
             }
         } else {
-            log.info(`Failed to resolve location for '${locationStr}', derived from '${article.location}'`)
+            log.debug(`Skipping article with href ${article.href}`)
         }
-    } else if (!found) {
-        log.info(`Insert article with href ${article.href}`)
-        const locationGeocoded = (await geocoder.geocode(article.location)).slice(-1).at(0)
+    } else {
+        log.info(`Insert article, href ${article.href}`)
+        const locationGeocoded = await geocodeLocation(article.location)
         try {
-            article.locationGeocoded = locationGeocoded
-            await collections.articles?.insertOne(article)
+            await collections.articles?.insertOne({...article, locationGeocoded})
         } catch (error) {
             log.error(`Failed ${error}`)
         }
-    } else {
-        log.debug(`Skipping article with href ${article.href}`)
+
     }
 }
 
@@ -111,6 +118,10 @@ for (const searchProfile of searchProfiles) {
     log.info(`Found search profile '${searchProfile.title}'`)
 
     for (const searchKeyword of searchProfile.keywords) {
+
+        // if (searchKeyword !== "axt beil")
+        //     continue
+
         for (const searchLocation of searchProfile.locations) {
             const searchRequest = {
                 keyword: searchKeyword,
@@ -121,10 +132,10 @@ for (const searchProfile of searchProfiles) {
 
             const found = await collections.searchRequests.findOne(searchRequest);
 
-            const diffInMinutesSearchRequest: number = found?.lastSearch ? ((Date.now() - found?.lastSearch)/(1000 * 60)).toFixed() : 0
+            const diffInMinutesSearchRequest: number = found?.lastSearch ? ((Date.now() - new Date(found?.lastSearch).getTime())/(1000 * 60)).toFixed() : 0
             const doSearchSearchRequest = !found?.lastSearch || diffInMinutesSearchRequest > MIN_TIME_BETWEEN_SEARCHES_MINUTES
-            if (!doSearchSearchRequest) {
-                log.info(`Search profile '${searchRequest}' skipped, crawled ${diffInMinutesSearchRequest} minutest ago`)
+            if (!doSearchSearchRequest && !FORCE_UPDATE) {
+                log.info(`Search keyword '${searchRequest.keyword}' skipped, crawled ${diffInMinutesSearchRequest} minutest ago`)
                 continue
             }
 
@@ -152,7 +163,12 @@ for (const searchProfile of searchProfiles) {
                     const found = await collections.articles.findOne({href: article.href});
 
                     if (found && !FORCE_UPDATE) {
-                        log.info(`Skipping search request after ${newArticlesCounter} items`)
+                        if (newArticlesCounter == 0) {
+                            log.info(`\x1B[34mNo new articles`)
+                        } else {
+                            log.info(`\x1B[31mNew articles found: ${newArticlesCounter}`)
+                        }
+
                         // we assume articles are ordered by time in search page
                         // so it is safe to skip the rest of results without loosing anything
                         return STOP_CRAWLING
@@ -164,7 +180,7 @@ for (const searchProfile of searchProfiles) {
                 return !STOP_CRAWLING
             })
 
-            await updateOrInsert(found, searchRequest, {lastSearch: Date.now()})
+            await updateOrInsert(found, searchRequest, {lastSearch: new Date()})
             await sleep(1000)
         }
     }
@@ -178,7 +194,12 @@ log.info(``)
 
 await client.close()
 
+const endDate = new Date()
 log.info(``)
+log.info(`End: ${endDate.toLocaleString()}`);
+const diffInMinutes = (endDate.getTime() - startDate.getTime())/(1000*60)
+log.info(`Duration (minutes): ${diffInMinutes}`)
+
 log.info(`>>> DONE <<<<`)
 log.info(``)
 

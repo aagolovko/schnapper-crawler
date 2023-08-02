@@ -26,6 +26,29 @@ export async function parseSearchPage(searchPagePath: string, metaInfoHandler?: 
         const location: String = el.querySelector('div .aditem-main--top--left i')?.nextSibling.innerText?.replace(/\n/gi, ' ').replace(/\s+/gi, ' ').replace(/\(.*\)+/gi, ' ').trim()
 
         const createdOn = el.querySelector('div .aditem-main--top--right i')?.nextSibling.innerText?.replace(/\n/gi, ' ').replace(/\s+/gi, ' ').trim()
+
+        let createdOnSplitted = createdOn.split(',')
+        let createdOnDate = new Date()
+        if (createdOnSplitted.length == 2) {
+            const hoursMinutes = createdOnSplitted[1].trim().split(':')
+            createdOnDate.setHours(parseInt(hoursMinutes[0]))
+            createdOnDate.setMinutes(parseInt(hoursMinutes[1]))
+
+            if (createdOnSplitted[0] == "Gestern") {
+                createdOnDate = new Date(createdOnDate.getTime() - 24*60*60*1000)
+            } else if (createdOnSplitted[0] == "Heute") {
+                // do nothing
+            }
+        } else {
+            createdOnSplitted = createdOn.split('.')
+            createdOnDate.setDate(parseInt(createdOnSplitted[0]))
+            createdOnDate.setMonth(parseInt(createdOnSplitted[1])-1)
+            createdOnDate.setYear(parseInt(createdOnSplitted[2]))
+            createdOnDate.setHours(0)
+            createdOnDate.setMinutes(0)
+            createdOnDate.setSeconds(0)
+        }
+
         const hrefImage = el.querySelector('img')?.getAttribute('src')
 
         const price = el.querySelector('.aditem-main--middle--price-shipping--price')?.innerText?.replace(/\n/gi, ' ').replace(/\s+/gi, ' ').trim()
@@ -45,6 +68,7 @@ export async function parseSearchPage(searchPagePath: string, metaInfoHandler?: 
             price,
             isShipping,
             title,
+            createdOn: createdOnDate
         })
     }
 

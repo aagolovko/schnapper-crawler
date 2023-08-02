@@ -18,7 +18,7 @@ export async function crawlForSearchProfile(searchRequest: SearchRequest, search
         requestQueue,
 
         // Uncomment this option to see the browser window.
-        headless: false,
+        headless: true,
 
         requestHandler
     } as PlaywrightCrawlerOptions;
@@ -46,7 +46,7 @@ export async function crawlForSearchProfile(searchRequest: SearchRequest, search
             await sleep(PAUSE_MS)
             await inputSearchDistance(page, searchRequest.searchDistance)
 
-            await sleep(PAUSE_MS)
+            await sleep(PAUSE_MS*2)
             await submitSearch(page);
 
             if (searchRequest.maxPrice) {
@@ -116,17 +116,20 @@ async function inputMaxPrice(page, maxPrice: number) {
 }
 
 async function clickAcceptCookies(page) {
-    try {
-        // alternative way to "allow cookies" is to open other page
-        // let selector1 = '//button[@id="gdpr-banner-cmp-button"]'
+    // alternative way to "allow cookies" is to open other page
+    // let selector1 = '//button[@id="gdpr-banner-cmp-button"]'
 
-        // >> close "accept cookies" only now, after text for search is entered
-        let selector = '//button[@id="gdpr-banner-accept"]'
-        let element = await page.waitForSelector(selector)
-        await element.click()
-    } catch (e) {
-        log.error(e)
-    }
+    // >> close "accept cookies" only now, after text for search is entered
+    let selector = '//button[@id="gdpr-banner-accept"]'
+    page.waitForSelector(selector, {timeout: 5000}).then( (button) => {
+        button.click()
+    }, (failure) => {
+        log.warning("Failed to resolve 'cookies' banner, but it is not a problem")
+    })
+    // try {
+    // } catch (e) {
+    //     log.warning(e)
+    // }
 }
 
 async function clickCloseRegisterPopup(page) {

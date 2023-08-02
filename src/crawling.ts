@@ -24,17 +24,17 @@ let searchRequestsCounter = 0
 
 const STOP_CRAWLING = true
 
-// set true, if you want to update already existing articles
+/* use next variables for debugging. The array containes keywords, which are
+* only allowed to be used in searches.*/
 const FORCE_UPDATE = true
+const DEBUG_SEARCH_KEYWORDS: string[] = [] // ['balken']
+export const DO_HEADLESS = true
 
-// for search profile
-const MIN_TIME_BETWEEN_SEARCHES_MINUTES = 60
+// minimal pause between single search requests
+const MIN_TIME_BETWEEN_SEARCHES_MINUTES = 360
 
 const searchRequests: any = []
 for (const searchProfile of searchProfiles) {
-
-    log.info(`Found search profile '${searchProfile.title}'`)
-
     for (const searchKeyword of searchProfile.keywords) {
         for (const searchLocation of searchProfile.locations) {
             const searchRequest: SearchRequest = {
@@ -69,11 +69,20 @@ async function geocodeLocation(location: string) {
     const locationSplitted = location.split('-')
 
     let locationStr = (locationSplitted.length > 0) ? locationSplitted[0].trim() : location
-    let locationGeocoded = (await geocoder.geocode(locationStr)).slice(-1).at(0)
+    let locationGeocoded
+    try {
+        locationGeocoded = (await geocoder.geocode(locationStr)).slice(-1).at(0)
+    } catch (e) {
+        log.warning(`geocodeLocation ${e}`)
+    }
 
     if (locationStr && !locationGeocoded) {
         locationStr = locationStr.split(' ')[0].trim()
-        locationGeocoded = (await geocoder.geocode(`${locationStr} Germany`)).slice(-1).at(0)
+        try {
+            locationGeocoded = (await geocoder.geocode(`${locationStr} Germany`)).slice(-1).at(0)
+        } catch (e) {
+            log.warning(`geocodeLocation ${e}`)
+        }
     }
 
     if (!locationGeocoded) {
@@ -119,8 +128,8 @@ for (const searchProfile of searchProfiles) {
 
     for (const searchKeyword of searchProfile.keywords) {
 
-        // if (searchKeyword !== "axt beil")
-        //     continue
+        if (DEBUG_SEARCH_KEYWORDS.length >0 && !(DEBUG_SEARCH_KEYWORDS.includes(searchKeyword)))
+            continue
 
         for (const searchLocation of searchProfile.locations) {
             const searchRequest = {
@@ -158,22 +167,22 @@ for (const searchProfile of searchProfiles) {
 
                 await updateOrInsert(found, searchRequest, {articlesFound: totalArticlesBySearchRequest})
 
-                let newArticlesCounter = 0
+                let handledArticleCounter = 0
                 for (const article of articles) {
                     const found = await collections.articles.findOne({href: article.href});
 
                     if (found && !FORCE_UPDATE) {
-                        if (newArticlesCounter == 0) {
+                        if (handledArticleCounter == 0) {
                             log.info(`\x1B[34mNo new articles`)
                         } else {
-                            log.info(`\x1B[31mNew articles found: ${newArticlesCounter}`)
+                            log.info(`\x1B[31mNew articles found: ${handledArticleCounter}`)
                         }
 
                         // we assume articles are ordered by time in search page
                         // so it is safe to skip the rest of results without loosing anything
                         return STOP_CRAWLING
                     }
-                    newArticlesCounter++
+                    handledArticleCounter++
                     await handleArticle(found, article);
                 }
 
@@ -184,6 +193,9 @@ for (const searchProfile of searchProfiles) {
             await sleep(1000)
         }
     }
+
+    log.info(``)
+    log.info(``)
 }
 
 let find = await collections.articles.find();
@@ -192,7 +204,6 @@ log.info(``)
 log.info(`Total of ${totalArticles} in db now`)
 log.info(``)
 
-await client.close()
 
 const endDate = new Date()
 log.info(``)

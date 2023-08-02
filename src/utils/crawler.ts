@@ -5,6 +5,7 @@ import {searchPageNumber, sleep} from "./utils.ts";
 import {SearchRequest} from "../models/searchRequest";
 import {RequestQueue} from "apify";
 import {v4 as uuidv4} from 'uuid';
+import {DO_HEADLESS} from "../crawling.ts";
 
 const PAUSE_MS = 1000
 
@@ -18,7 +19,7 @@ export async function crawlForSearchProfile(searchRequest: SearchRequest, search
         requestQueue,
 
         // Uncomment this option to see the browser window.
-        headless: true,
+        headless: DO_HEADLESS,
 
         requestHandler
     } as PlaywrightCrawlerOptions;
@@ -85,7 +86,7 @@ async function inpuSearchArea(page, searchArea: string) {
         let element = await page.waitForSelector(selector);
         await element.type(searchArea)
     } catch (e) {
-        log.error(e)
+        log.error(`inputSearchArea ${e}`)
     }
 }
 
@@ -96,7 +97,7 @@ async function inputSearchQuery(page, keyword: string) {
         let element = await page.waitForSelector(selector);
         await element.type(keyword)
     } catch (e) {
-        log.error(e)
+        log.error(`inpuSearchQuery ${e}`)
     }
 }
 
@@ -111,7 +112,7 @@ async function inputMaxPrice(page, maxPrice: number) {
         let elementBtn = await page.waitForSelector(selectorBtn);
         await elementBtn.click()
     } catch (e) {
-        log.error(e)
+        log.error(`inputMaxPrice ${e}`)
     }
 }
 
@@ -126,10 +127,6 @@ async function clickAcceptCookies(page) {
     }, (failure) => {
         log.warning("Failed to resolve 'cookies' banner, but it is not a problem")
     })
-    // try {
-    // } catch (e) {
-    //     log.warning(e)
-    // }
 }
 
 async function clickCloseRegisterPopup(page) {
@@ -138,7 +135,7 @@ async function clickCloseRegisterPopup(page) {
         let element = await page.waitForSelector(selector)
         await element.click()
     } catch (e) {
-        log.debug(e)
+        log.debug(`clickCloseRegisterPopup ${e}`)
     }
 }
 
@@ -157,11 +154,11 @@ async function inputSearchDistance(page, searchDistance: string) {
         await page.keyboard.press('ArrowDown')  // +10km
         await page.keyboard.press('ArrowDown') // +20km
         await page.keyboard.press('ArrowDown') // +30km
-        // await page.keyboard.press('ArrowDown') // +50km
+        await page.keyboard.press('ArrowDown') // +50km
         // await page.keyboard.press('ArrowDown') // +100km
         await page.keyboard.press('Enter')
     } catch (e) {
-        log.error(e)
+        log.error(`inputSearchDistance ${e}`)
     }
 }
 
@@ -172,7 +169,7 @@ async function submitSearch(page) {
         let element = await page.waitForSelector(selector);
         await element.click()
     } catch (e) {
-        log.error(e)
+        log.error(`submitSearch ${e}`)
     }
 }
 

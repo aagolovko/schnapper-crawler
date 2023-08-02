@@ -9,9 +9,6 @@ import * as fs from "fs";
 export async function parseSearchPage(searchPagePath: string, metaInfoHandler?: (from: number, to: number, totalFoundCounter: number) => void): Article[] {
     const searchPageContent = fs.readFileSync(searchPagePath, 'utf8')
 
-    log.info(`Content of ${searchPagePath}`);
-
-
     const root = parse(searchPageContent)
     const summary = root.querySelector('.breadcrump-summary')?.innerText?.match(/(\d+)/gm).slice(0, 3)
     if (summary && summary.length == 3 && metaInfoHandler) {
@@ -22,12 +19,26 @@ export async function parseSearchPage(searchPagePath: string, metaInfoHandler?: 
     const articlesJson: Article[] = []
 
     for (const el of articles) {
+        const href = el.querySelector('.text-module-begin a')?.getAttribute('href')
+        log.debug(`Handling article with href ${href}`);
+
+        const hrefImageTry1 = el.querySelector('img')?.getAttribute('src')
+        const hrefImageTry2 = el.querySelector('.imagebox')?.getAttribute('data-imgsrcretina')
+        const hrefImage = hrefImageTry2 ? hrefImageTry2 : hrefImageTry1
+        if (!hrefImage) {
+            log.debug(`Failed to resolve hrefImage for ${href}`);
+        }
 
         const location: String = el.querySelector('div .aditem-main--top--left i')?.nextSibling.innerText?.replace(/\n/gi, ' ').replace(/\s+/gi, ' ').replace(/\(.*\)+/gi, ' ').trim()
 
         const createdOn = el.querySelector('div .aditem-main--top--right i')?.nextSibling.innerText?.replace(/\n/gi, ' ').replace(/\s+/gi, ' ').trim()
 
-        let createdOnSplitted = createdOn.split(',')
+        if (!createdOn) {
+            log.warning(`Failed to resolve "createdOn", href ${href}`);
+            continue
+        }
+
+        let createdOnSplitted = createdOn ? createdOn.split(',') : []
         let createdOnDate = new Date()
         if (createdOnSplitted.length == 2) {
             const hoursMinutes = createdOnSplitted[1].trim().split(':')
@@ -49,14 +60,12 @@ export async function parseSearchPage(searchPagePath: string, metaInfoHandler?: 
             createdOnDate.setSeconds(0)
         }
 
-        const hrefImage = el.querySelector('img')?.getAttribute('src')
-
         const price = el.querySelector('.aditem-main--middle--price-shipping--price')?.innerText?.replace(/\n/gi, ' ').replace(/\s+/gi, ' ').trim()
         const priceEur = price ? parseInt(price.match(/\d/g)?.join('')) : 0
         const isShippingStr = el.querySelector('.aditem-main--middle--price-shipping--shipping')?.innerText?.replace(/\n/gi, ' ').replace(/\s+/gi, ' ').trim()
         const isShipping = isShippingStr != undefined ? true : false
 
-        const href = el.querySelector('.text-module-begin a')?.getAttribute('href')
+
         const title = el.querySelector('.text-module-begin a')?.innerText
 
         articlesJson.push({

@@ -48,4 +48,6 @@ export interface SearchProfile {
     locations?: SearchLocation[];
 
     maxPrice?: number;
+
+    searchProfile?: boolean;
 }

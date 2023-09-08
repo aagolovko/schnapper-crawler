@@ -21,17 +21,41 @@ const found = await collections.searchProfiles.find({});
 const searchProfiles = await found.toArray();
 
 
+/*
+*
+* article which are brettspiel (case insensitive
+*       {title: {$regex: 'brettspiel', $options: 'i'}}
+*       {title: {$regex: 'Surfbrett', $options: 'i'}}
+*
+*
+* {_id: ObjectId('64ca6de53bcf2c464d589c62')}
+* {href: '/s-anzeige/trixie-fahrradanhaenger-inkl-kupplung/2507695309-217-6453'}
+*
+* with wrong image HREF
+*       {hrefImage: {$regex: " 2x"}}
+* */
+
 // NOTE: use the code to convert/update fields of articles
-// const updateMe: Article[] = await (await collections.articles.find({hrefImage: {$regex: " 2x"}})).toArray();
+// const updateMe: Article[] = await (await collections.articles.find(
+//     {title: {$regex: 'trittbrett', $options: 'i'}}
+// )).toArray();
 // for (const a of updateMe) {
-//     const hrefImageNew = a.hrefImage?.replace(/ 2x/gi, '').trim()
-//     await collections.articles.updateOne({_id: a._id}, {$set: {hrefImage: hrefImageNew}})
+//     await collections.articles.updateOne({_id: a._id}, {$set: {isIgnored: true}})
+// }
+
+// const updateMe: Article[] = await (await collections.articles.find(
+//     {isIgnored: {$exists: false}}
+// )).toArray();
+// for (const a of updateMe) {
+//     if (!a.isFavorite) {
+//         await collections.articles.deleteOne({_id: a._id})
+//     }
 // }
 
 let searchRequestsCounter = 0
 
 const STOP_CRAWLING = true
-
+export const PAUSE_MS = 1000
 /* use next variables for debugging. The array containes keywords, which are
 * only allowed to be used in searches.*/
 const FORCE_UPDATE = false
@@ -43,6 +67,8 @@ const MIN_TIME_BETWEEN_SEARCHES_MINUTES = 360
 
 const searchRequests: any = []
 for (const searchProfile of searchProfiles) {
+    if (!searchProfile?.isActive)
+        continue
     for (const searchKeyword of searchProfile.keywords) {
         for (const searchLocation of searchProfile.locations) {
             const searchRequest: SearchRequest = {
@@ -66,8 +92,8 @@ log.info(``)
 log.info(``)
 
 const updateOrInsert = async (found: any, object: any, updatedFields: any) => {
-    if (found && found._id) {
-        await collections.searchRequests.updateOne({_id: found?._id}, {$set: updatedFields})
+    if (found) {
+        await collections.searchRequests.updateOne({_id: found._id}, {$set: updatedFields})
     } else {
         await collections.searchRequests.insertOne({...object, ...updatedFields})
     }
@@ -100,25 +126,36 @@ async function geocodeLocation(location: string) {
     return locationGeocoded
 }
 
-async function handleArticle(found, article) {
+async function handleArticle(searchKeyword, found, article) {
     if (found) {
-        if (FORCE_UPDATE) {
-            log.info(`Update (force) article, href ${article.href}`)
 
-            if (!found.locationGeocoded) {
-                const locationGeocoded = await geocodeLocation(article.location)
-                article.locationGeocoded = locationGeocoded
+        let doUpdate = false
+        if (!article.searchKeywords?.includes(searchKeyword)) {
+            if (!article.searchKeywords) {
+                article.searchKeywords = [searchKeyword]
+            } else {
+                article.searchKeywords.push(searchKeyword)
             }
+            doUpdate = true
+        }
+
+        if (!found.locationGeocoded && FORCE_UPDATE) {
+            const locationGeocoded = await geocodeLocation(article.location)
+            article.locationGeocoded = locationGeocoded
+            doUpdate = true
+        }
+
+        if (doUpdate) {
+            log.info(`Update (force) article, href ${article.href}`)
 
             try {
                 await collections.articles?.updateOne({_id: found._id}, {$set: {...found, ...article}})
             } catch (error) {
                 log.error(`Failed ${error}`)
             }
-        } else {
-            log.debug(`Skipping article with href ${article.href}`)
         }
     } else {
+        article.searchKeywords = [searchKeyword]
         log.info(`Insert article, href ${article.href}`)
         const locationGeocoded = await geocodeLocation(article.location)
         try {
@@ -136,7 +173,7 @@ for (const searchProfile of searchProfiles) {
 
     for (const searchKeyword of searchProfile.keywords) {
 
-        if (DEBUG_SEARCH_KEYWORDS.length >0 && !(DEBUG_SEARCH_KEYWORDS.includes(searchKeyword)))
+        if (DEBUG_SEARCH_KEYWORDS.length > 0 && !(DEBUG_SEARCH_KEYWORDS.includes(searchKeyword)))
             continue
 
         for (const searchLocation of searchProfile.locations) {
@@ -147,12 +184,12 @@ for (const searchProfile of searchProfiles) {
                 maxPrice: searchProfile.maxPrice
             }
 
-            const found = await collections.searchRequests.findOne(searchRequest);
+            const foundSearchRequest = await collections.searchRequests.findOne(searchRequest);
 
-            const diffInMinutesSearchRequest: number = found?.lastSearch ? ((Date.now() - new Date(found?.lastSearch).getTime())/(1000 * 60)).toFixed() : 0
-            const doSearchSearchRequest = !found?.lastSearch || diffInMinutesSearchRequest > MIN_TIME_BETWEEN_SEARCHES_MINUTES
+            const diffInMinutesSearchRequest: number = foundSearchRequest?.lastSearch ? ((Date.now() - new Date(foundSearchRequest?.lastSearch).getTime())/(1000 * 60)).toFixed() : 0
+            const doSearchSearchRequest = !foundSearchRequest?.lastSearch || diffInMinutesSearchRequest > MIN_TIME_BETWEEN_SEARCHES_MINUTES
             if (!doSearchSearchRequest && !FORCE_UPDATE) {
-                log.info(`Search keyword '${searchRequest.keyword}' skipped, crawled ${diffInMinutesSearchRequest} minutest ago`)
+                log.info(`Skip: search keyword '${searchRequest.keyword}', crawled ${diffInMinutesSearchRequest} minutest ago`)
                 continue
             }
 
@@ -173,8 +210,6 @@ for (const searchProfile of searchProfiles) {
                     }
                 });
 
-                await updateOrInsert(found, searchRequest, {articlesFound: totalArticlesBySearchRequest})
-
                 let handledArticleCounter = 0
                 for (const article of articles) {
                     const found = await collections.articles.findOne({href: article.href});
@@ -191,13 +226,15 @@ for (const searchProfile of searchProfiles) {
                         return STOP_CRAWLING
                     }
                     handledArticleCounter++
-                    await handleArticle(found, article);
+                    await handleArticle(searchKeyword, found, article);
                 }
 
                 return !STOP_CRAWLING
             })
 
-            await updateOrInsert(found, searchRequest, {lastSearch: new Date()})
+            await updateOrInsert(foundSearchRequest, searchRequest, {articlesFound: totalArticlesBySearchRequest, lastSearch: new Date()})
+
+            // await updateOrInsert(foundSearchRequest, searchRequest, {lastSearch: new Date()})
             await sleep(1000)
         }
     }

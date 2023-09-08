@@ -5,6 +5,9 @@
 * save items found in db
 * generate KML with all results form dB
 * vizualize results on map, click to mark items as "not-interesing" or "interesting"
+* special vizual code for "zum verschenken" or low price.
+
+* statistics for crawler: last time search for keyword, new items found for search etc.
 
 * generate mongodb UI: https://retool.com/blog/build-a-mongodb-gui-in-minutes/
 

@@ -5,9 +5,7 @@ import {searchPageNumber, sleep} from "./utils.ts";
 import {SearchRequest} from "../models/searchRequest";
 import {RequestQueue} from "apify";
 import {v4 as uuidv4} from 'uuid';
-import {DO_HEADLESS} from "../crawling.ts";
-
-const PAUSE_MS = 1000
+import {DO_HEADLESS, PAUSE_MS} from "../crawling.ts";
 
 export async function crawlForSearchProfile(searchRequest: SearchRequest, searchPageHandler: (str: string, spHref: string) => void) {
     let uuid = uuidv4()
@@ -50,9 +48,9 @@ export async function crawlForSearchProfile(searchRequest: SearchRequest, search
             await sleep(PAUSE_MS*2)
             await submitSearch(page);
 
-            if (searchRequest.maxPrice) {
-                await inputMaxPrice(page, searchRequest.maxPrice)
-            }
+            // if (searchRequest.maxPrice) {
+            //     await inputMaxPrice(page, searchRequest.maxPrice)
+            // }
 
 
             await sleep(PAUSE_MS)

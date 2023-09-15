@@ -5,11 +5,13 @@ import {Article} from "../models/article";
 import {SearchProfile} from "../models/searchProfile";
 import {log} from "crawlee";
 import {SearchRequest} from "../models/searchRequest";
+import {GeocodingLocation} from "../models/geocodingLocation";
 
 export const collections: {
     articles: mongoDB.Collection<Article>,
     searchProfiles: mongoDB.Collection<SearchProfile>
     searchRequests: mongoDB.Collection<SearchRequest>
+    geocodingLocations: mongoDB.Collection<GeocodingLocation>
 } = {};
 
 export async function connectToDatabase(): MongoClient {
@@ -32,11 +34,13 @@ export async function connectToDatabase(): MongoClient {
     const articlesCollection = db.collection<Article>(process.env.ARTICLES_COLLECTION_NAME);
     const searchProfilesCollection = db.collection<SearchProfile>('searchProfiles');
     const searchRequestsCollection = db.collection<SearchRequest>('searchRequests');
+    const geocodingLocationsCollection = db.collection<GeocodingLocation>('geocodingLocations');
 
     // Persist the connection to the Games collection
     collections.articles = articlesCollection;
     collections.searchProfiles = searchProfilesCollection;
     collections.searchRequests = searchRequestsCollection;
+    collections.geocodingLocations = geocodingLocationsCollection;
 
     log.info(`Successfully connected to database: ${db.databaseName} and collections`);
 

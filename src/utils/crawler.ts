@@ -48,9 +48,9 @@ export async function crawlForSearchProfile(searchRequest: SearchRequest, search
             await sleep(PAUSE_MS*2)
             await submitSearch(page);
 
-            // if (searchRequest.maxPrice) {
-            //     await inputMaxPrice(page, searchRequest.maxPrice)
-            // }
+            if (searchRequest.maxPrice) {
+                await inputMaxPrice(page, searchRequest.maxPrice)
+            }
 
 
             await sleep(PAUSE_MS)
@@ -64,7 +64,7 @@ export async function crawlForSearchProfile(searchRequest: SearchRequest, search
         if (crawlNext) {
             // Find a link to the next page and enqueue it if it exists.
             await enqueueLinks({
-                limit: 10,
+                limit: 20,
                 selector: '//div[@class="pagination-pages"]/a',
             });
         }
@@ -153,7 +153,7 @@ async function inputSearchDistance(page, searchDistance: string) {
         await page.keyboard.press('ArrowDown') // +20km
         await page.keyboard.press('ArrowDown') // +30km
         await page.keyboard.press('ArrowDown') // +50km
-        // await page.keyboard.press('ArrowDown') // +100km
+        await page.keyboard.press('ArrowDown') // +100km
         await page.keyboard.press('Enter')
     } catch (e) {
         log.error(`inputSearchDistance ${e}`)

@@ -20,7 +20,6 @@ const client = await connectToDatabase()
 const found = await collections.searchProfiles.find({});
 const searchProfiles = await found.toArray();
 
-
 /*
 *
 * article which are brettspiel (case insensitive
@@ -43,8 +42,17 @@ const searchProfiles = await found.toArray();
 //     await collections.articles.updateOne({_id: a._id}, {$set: {isIgnored: true}})
 // }
 
+
+// Note: Remove items, which was not considered yet by user
 // const updateMe: Article[] = await (await collections.articles.find(
-//     {isIgnored: {$exists: false}}
+//     {isIgnored: {$exists: false}, isFavorite: {$exists: false}}
+// )).toArray();
+// for (const a of updateMe) {
+//     await collections.articles.deleteOne({_id: a._id})
+// }
+
+// const updateMe: Article[] = await (await collections.articles.find(
+//     {searchKeywords: {$in: ["bretter"]}}
 // )).toArray();
 // for (const a of updateMe) {
 //     if (!a.isFavorite) {
@@ -67,8 +75,6 @@ const MIN_TIME_BETWEEN_SEARCHES_MINUTES = 360
 
 const searchRequests: any = []
 for (const searchProfile of searchProfiles) {
-    if (!searchProfile?.isActive)
-        continue
     for (const searchKeyword of searchProfile.keywords) {
         for (const searchLocation of searchProfile.locations) {
             const searchRequest: SearchRequest = {
@@ -103,24 +109,41 @@ async function geocodeLocation(location: string) {
     const locationSplitted = location.split('-')
 
     let locationStr = (locationSplitted.length > 0) ? locationSplitted[0].trim() : location
+
+    const foundLocation = await collections.geocodingLocations.findOne({ locationString: locationStr });
+
+    if ( foundLocation?.locationOsm) {
+        return foundLocation.locationOsm
+    }
+
     let locationGeocoded
     try {
         locationGeocoded = (await geocoder.geocode(locationStr)).slice(-1).at(0)
     } catch (e) {
-        log.warning(`geocodeLocation ${e}`)
+        log.warning(`geocodeLocation first try ${e}`)
     }
 
+    let locationStrGermanPlz
     if (locationStr && !locationGeocoded) {
-        locationStr = locationStr.split(' ')[0].trim()
+        locationStrGermanPlz = locationStr.split(' ')[0].trim()
         try {
-            locationGeocoded = (await geocoder.geocode(`${locationStr} Germany`)).slice(-1).at(0)
+            locationGeocoded = (await geocoder.geocode(`${locationStrGermanPlz} Germany`)).slice(-1).at(0)
         } catch (e) {
-            log.warning(`geocodeLocation ${e}`)
+            log.warning(`geocodeLocation second try ${e}`)
         }
     }
 
     if (!locationGeocoded) {
-        log.warning(`Failed to resolve location for '${locationStr}', derived from '${location}'`)
+        log.warning(`geolocation finally failed '${locationStr}', derived from '${location}'`)
+        await collections.geocodingLocations.insertOne({locationString: locationStr, locationStringGermanPlz: locationStrGermanPlz, locationOsm: null})
+    }
+
+    if (locationGeocoded && !foundLocation) {
+        await collections.geocodingLocations.insertOne({locationString: locationStr, locationStringGermanPlz: locationStrGermanPlz, locationOsm: locationGeocoded})
+    }
+
+    if (locationGeocoded && foundLocation && !foundLocation?.locationOsm) {
+        await collections.geocodingLocations.updateOne({_id: foundLocation._id}, {$set: {locationOsm: locationGeocoded}})
     }
 
     return locationGeocoded
@@ -156,7 +179,7 @@ async function handleArticle(searchKeyword, found, article) {
         }
     } else {
         article.searchKeywords = [searchKeyword]
-        log.info(`Insert article, href ${article.href}`)
+        log.info(`Insert article, href ${article.href}, ${article.location}`)
         const locationGeocoded = await geocodeLocation(article.location)
         try {
             await collections.articles?.insertOne({...article, locationGeocoded})
@@ -168,6 +191,12 @@ async function handleArticle(searchKeyword, found, article) {
 }
 
 for (const searchProfile of searchProfiles) {
+
+    if (!searchProfile?.isActive) {
+        log.info(`Skip: search profile '${searchProfile.title}', because not active`)
+        continue
+
+    }
 
     log.info(`Found search profile '${searchProfile.title}'`)
 
@@ -214,17 +243,17 @@ for (const searchProfile of searchProfiles) {
                 for (const article of articles) {
                     const found = await collections.articles.findOne({href: article.href});
 
-                    if (found && !FORCE_UPDATE) {
-                        if (handledArticleCounter == 0) {
-                            log.info(`\x1B[34mNo new articles`)
-                        } else {
-                            log.info(`\x1B[31mNew articles found: ${handledArticleCounter}`)
-                        }
-
-                        // we assume articles are ordered by time in search page
-                        // so it is safe to skip the rest of results without loosing anything
-                        return STOP_CRAWLING
-                    }
+                    // // we assume articles are ordered by time in search page
+                    // // so it is safe to skip the rest of results without loosing anything
+                    // if (found && !FORCE_UPDATE) {
+                    //     if (handledArticleCounter == 0) {
+                    //         log.info(`\x1B[34mNo new articles`)
+                    //     } else {
+                    //         log.info(`\x1B[31mNew articles found: ${handledArticleCounter}`)
+                    //     }
+                    //
+                    //     return STOP_CRAWLING
+                    // }
                     handledArticleCounter++
                     await handleArticle(searchKeyword, found, article);
                 }

@@ -49,5 +49,5 @@ export interface SearchProfile {
 
     maxPrice?: number;
 
-    searchProfile?: boolean;
+    isActive: boolean;
 }

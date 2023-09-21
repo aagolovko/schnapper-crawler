@@ -71,7 +71,7 @@ const DEBUG_SEARCH_KEYWORDS: string[] = [] // ['balken']
 export const DO_HEADLESS = true
 
 // minimal pause between single search requests
-const MIN_TIME_BETWEEN_SEARCHES_MINUTES = 360
+const MIN_TIME_BETWEEN_SEARCHES_MINUTES = 60 // 360
 
 const searchRequests: any = []
 for (const searchProfile of searchProfiles) {
@@ -151,48 +151,35 @@ async function geocodeLocation(location: string) {
 
 async function handleArticle(searchKeyword, found, article) {
     if (found) {
-
-        let doUpdate = false
-        if (!article.searchKeywords?.includes(searchKeyword)) {
-            if (!article.searchKeywords) {
-                article.searchKeywords = [searchKeyword]
-            } else {
-                article.searchKeywords.push(searchKeyword)
-            }
-            doUpdate = true
+        if (!article.searchKeywords) {
+            article.searchKeywords = []
         }
 
-        if (!found.locationGeocoded && FORCE_UPDATE) {
-            const locationGeocoded = await geocodeLocation(article.location)
-            article.locationGeocoded = locationGeocoded
-            doUpdate = true
+        if (!article.searchKeywords.includes(searchKeyword)) {
+            article.searchKeywords.push(searchKeyword)
         }
 
-        if (doUpdate) {
-            log.info(`Update (force) article, href ${article.href}`)
+        log.info(`Update article (keywords), href ${article.href}, ${article.location}`)
 
-            try {
-                await collections.articles?.updateOne({_id: found._id}, {$set: {...found, ...article}})
-            } catch (error) {
-                log.error(`Failed ${error}`)
-            }
-        }
-    } else {
-        article.searchKeywords = [searchKeyword]
-        log.info(`Insert article, href ${article.href}, ${article.location}`)
-        const locationGeocoded = await geocodeLocation(article.location)
         try {
-            await collections.articles?.insertOne({...article, locationGeocoded})
+            await collections.articles?.updateOne({_id: found._id}, {$set: {...found, ...article}})
         } catch (error) {
             log.error(`Failed ${error}`)
         }
-
+    } else {
+        log.info(`Insert article, href ${article.href}, ${article.location}`)
+        const locationGeocoded = await geocodeLocation(article.location)
+        try {
+            await collections.articles?.insertOne({...article, locationGeocoded, searchKeywords: [searchKeyword]})
+        } catch (error) {
+            log.error(`Failed ${error}`)
+        }
     }
 }
 
 for (const searchProfile of searchProfiles) {
 
-    if (!searchProfile?.isActive) {
+    if (!searchProfile.isActive) {
         log.info(`Skip: search profile '${searchProfile.title}', because not active`)
         continue
 
@@ -243,17 +230,17 @@ for (const searchProfile of searchProfiles) {
                 for (const article of articles) {
                     const found = await collections.articles.findOne({href: article.href});
 
-                    // // we assume articles are ordered by time in search page
-                    // // so it is safe to skip the rest of results without loosing anything
-                    // if (found && !FORCE_UPDATE) {
-                    //     if (handledArticleCounter == 0) {
-                    //         log.info(`\x1B[34mNo new articles`)
-                    //     } else {
-                    //         log.info(`\x1B[31mNew articles found: ${handledArticleCounter}`)
-                    //     }
-                    //
-                    //     return STOP_CRAWLING
-                    // }
+                    // we assume articles are ordered by time in search page
+                    // so it is safe to skip the rest of results without loosing anything
+                    if (found && !FORCE_UPDATE) {
+                        if (handledArticleCounter == 0) {
+                            log.info(`\x1B[34mNo new articles`)
+                        } else {
+                            log.info(`\x1B[31mNew articles found: ${handledArticleCounter}`)
+                        }
+
+                        return STOP_CRAWLING
+                    }
                     handledArticleCounter++
                     await handleArticle(searchKeyword, found, article);
                 }

@@ -1,9 +1,9 @@
 import {writeFileSync} from 'fs';
 import {collections, connectToDatabase} from "./services/database.service.ts";
-import {crawlForSearchProfile} from "./utils/crawler.ts";
+import {crawlForSearchProfile} from "./utils/crawlForSearchProfile.ts";
 import {log} from "crawlee";
 import {sleep} from "./utils/utils.ts";
-import {parseSearchPage} from "./utils/parser.ts";
+import {parseSearchPage} from "./utils/parseSearchPage.ts";
 import {Article} from "./models/article";
 
 import NodeGeocoder from 'node-geocoder';
@@ -117,8 +117,10 @@ async function geocodeLocation(location: string) {
     }
 
     let locationGeocoded
+    let entries
     try {
-        locationGeocoded = (await geocoder.geocode(locationStr)).slice(-1).at(0)
+        entries = await geocoder.geocode(locationStr);
+        locationGeocoded = entries.slice(-1).at(0)
     } catch (e) {
         log.warning(`geocodeLocation first try ${e}`)
     }
@@ -167,7 +169,7 @@ async function handleArticle(searchKeyword, found, article) {
             log.error(`Failed ${error}`)
         }
     } else {
-        log.info(`Insert article, href ${article.href}, ${article.location}`)
+        log.info(`Insert article, href https://ebay-kleinanzeigen.de${article.href}, ${article.location}`)
         const locationGeocoded = await geocodeLocation(article.location)
         try {
             await collections.articles?.insertOne({...article, locationGeocoded, searchKeywords: [searchKeyword]})

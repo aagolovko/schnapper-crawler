@@ -6,15 +6,8 @@ import {sleep} from "./utils/utils.ts";
 import {parseSearchPage} from "./utils/parseSearchPage.ts";
 import {Article} from "./models/article";
 
-import NodeGeocoder from 'node-geocoder';
-import node_geocoder from 'node-geocoder';
 import {SearchRequest} from "./models/searchRequest";
-
-const options: node_geocoder.Options = {
-    provider: 'openstreetmap'
-};
-
-const geocoder = NodeGeocoder(options);
+import {geocodeLocation} from "./utils/geocoding.ts";
 
 const client = await connectToDatabase()
 const found = await collections.searchProfiles.find({});
@@ -71,7 +64,7 @@ const DEBUG_SEARCH_KEYWORDS: string[] = [] // ['balken']
 export const DO_HEADLESS = true
 
 // minimal pause between single search requests
-const MIN_TIME_BETWEEN_SEARCHES_MINUTES = 60 // 360
+const MIN_TIME_BETWEEN_SEARCHES_MINUTES = 360 // 360
 
 const searchRequests: any = []
 for (const searchProfile of searchProfiles) {
@@ -105,54 +98,11 @@ const updateOrInsert = async (found: any, object: any, updatedFields: any) => {
     }
 }
 
-async function geocodeLocation(location: string) {
-    const locationSplitted = location.split('-')
-
-    let locationStr = (locationSplitted.length > 0) ? locationSplitted[0].trim() : location
-
-    const foundLocation = await collections.geocodingLocations.findOne({ locationString: locationStr });
-
-    if ( foundLocation?.locationOsm) {
-        return foundLocation.locationOsm
-    }
-
-    let locationGeocoded
-    let entries
-    try {
-        entries = await geocoder.geocode(locationStr);
-        locationGeocoded = entries.slice(-1).at(0)
-    } catch (e) {
-        log.warning(`geocodeLocation first try ${e}`)
-    }
-
-    let locationStrGermanPlz
-    if (locationStr && !locationGeocoded) {
-        locationStrGermanPlz = locationStr.split(' ')[0].trim()
-        try {
-            locationGeocoded = (await geocoder.geocode(`${locationStrGermanPlz} Germany`)).slice(-1).at(0)
-        } catch (e) {
-            log.warning(`geocodeLocation second try ${e}`)
-        }
-    }
-
-    if (!locationGeocoded) {
-        log.warning(`geolocation finally failed '${locationStr}', derived from '${location}'`)
-        await collections.geocodingLocations.insertOne({locationString: locationStr, locationStringGermanPlz: locationStrGermanPlz, locationOsm: null})
-    }
-
-    if (locationGeocoded && !foundLocation) {
-        await collections.geocodingLocations.insertOne({locationString: locationStr, locationStringGermanPlz: locationStrGermanPlz, locationOsm: locationGeocoded})
-    }
-
-    if (locationGeocoded && foundLocation && !foundLocation?.locationOsm) {
-        await collections.geocodingLocations.updateOne({_id: foundLocation._id}, {$set: {locationOsm: locationGeocoded}})
-    }
-
-    return locationGeocoded
-}
-
 async function handleArticle(searchKeyword, found, article) {
     if (found) {
+
+        return
+
         if (!article.searchKeywords) {
             article.searchKeywords = []
         }
@@ -194,6 +144,9 @@ for (const searchProfile of searchProfiles) {
         if (DEBUG_SEARCH_KEYWORDS.length > 0 && !(DEBUG_SEARCH_KEYWORDS.includes(searchKeyword)))
             continue
 
+        if (searchKeyword.startsWith("-"))
+            continue
+
         for (const searchLocation of searchProfile.locations) {
             const searchRequest = {
                 keyword: searchKeyword,
@@ -232,17 +185,17 @@ for (const searchProfile of searchProfiles) {
                 for (const article of articles) {
                     const found = await collections.articles.findOne({href: article.href});
 
-                    // we assume articles are ordered by time in search page
-                    // so it is safe to skip the rest of results without loosing anything
-                    if (found && !FORCE_UPDATE) {
-                        if (handledArticleCounter == 0) {
-                            log.info(`\x1B[34mNo new articles`)
-                        } else {
-                            log.info(`\x1B[31mNew articles found: ${handledArticleCounter}`)
-                        }
-
-                        return STOP_CRAWLING
-                    }
+                    // // we assume articles are ordered by time in search page
+                    // // so it is safe to skip the rest of results without loosing anything
+                    // if (found && !FORCE_UPDATE) {
+                    //     if (handledArticleCounter == 0) {
+                    //         log.info(`\x1B[34mNo new articles`)
+                    //     } else {
+                    //         log.info(`\x1B[31mNew articles found: ${handledArticleCounter}`)
+                    //     }
+                    //
+                    //     return STOP_CRAWLING
+                    // }
                     handledArticleCounter++
                     await handleArticle(searchKeyword, found, article);
                 }

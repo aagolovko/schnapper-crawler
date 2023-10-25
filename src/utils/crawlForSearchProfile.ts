@@ -12,7 +12,7 @@ export async function crawlForSearchProfile(searchRequest: SearchRequest, search
     const requestQueue = await RequestQueue.open(`rq-${uuid}`)
 
     const crawlerConfig = {
-        maxRequestsPerCrawl: 20,
+        maxRequestsPerCrawl: 50,
 
         requestQueue,
 
@@ -48,11 +48,11 @@ export async function crawlForSearchProfile(searchRequest: SearchRequest, search
             await sleep(PAUSE_MS*2)
             await submitSearch(page);
 
-            if (searchRequest.maxPrice) {
-                await inputMaxPrice(page, searchRequest.maxPrice)
-            }
-
-
+            // await sleep(PAUSE_MS*4)
+            // if (searchRequest.maxPrice) {
+            //     await inputMaxPrice(page, searchRequest.maxPrice)
+            // }
+            await sleep(PAUSE_MS*4)
             await sleep(PAUSE_MS)
         } else {
             // DO NOTHING
@@ -153,7 +153,7 @@ async function inputSearchDistance(page, searchDistance: string) {
         await page.keyboard.press('ArrowDown') // +20km
         await page.keyboard.press('ArrowDown') // +30km
         await page.keyboard.press('ArrowDown') // +50km
-        await page.keyboard.press('ArrowDown') // +100km
+        // await page.keyboard.press('ArrowDown') // +100km
         await page.keyboard.press('Enter')
     } catch (e) {
         log.error(`inputSearchDistance ${e}`)

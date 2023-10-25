@@ -14,7 +14,7 @@ export async function parseSearchPage(searchPagePath: string, metaInfoHandler?: 
     if (summary && summary.length == 3 && metaInfoHandler) {
         metaInfoHandler(Number(summary[0]), Number(summary[1]), Number(summary[2]))
     }
-    const articles = root.querySelectorAll('article')
+    const articles = root.querySelectorAll('#srchrslt-adtable article')
 
     const articlesJson: Article[] = []
 

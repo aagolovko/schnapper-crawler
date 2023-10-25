@@ -1,5 +1,8 @@
 # TODO: 
 
+* proble: failed detect isDeleted "/s-anzeige/ivar-regal-zu-verschenken/2536126591-192-6350" 
+
+* do not save items, if too away. detect "Alternative Anzeigen in der Umgebung" and skip items after it
 * repo for the code
 * create SJON with search requests, save search request in dB 
 * save items found in db

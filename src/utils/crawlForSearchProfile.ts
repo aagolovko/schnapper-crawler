@@ -12,7 +12,7 @@ export async function crawlForSearchProfile(searchRequest: SearchRequest, search
     const requestQueue = await RequestQueue.open(`rq-${uuid}`)
 
     const crawlerConfig = {
-        maxRequestsPerCrawl: 50,
+        maxRequestsPerCrawl: 70,
 
         requestQueue,
 
@@ -157,6 +157,7 @@ async function inputSearchDistance(page, searchDistance: string) {
         await page.keyboard.press('Enter')
     } catch (e) {
         log.error(`inputSearchDistance ${e}`)
+        throw e
     }
 }
 

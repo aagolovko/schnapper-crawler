@@ -13,46 +13,6 @@ const client = await connectToDatabase()
 const found = await collections.searchProfiles.find({});
 const searchProfiles = await found.toArray();
 
-/*
-*
-* article which are brettspiel (case insensitive
-*       {title: {$regex: 'brettspiel', $options: 'i'}}
-*       {title: {$regex: 'Surfbrett', $options: 'i'}}
-*
-*
-* {_id: ObjectId('64ca6de53bcf2c464d589c62')}
-* {href: '/s-anzeige/trixie-fahrradanhaenger-inkl-kupplung/2507695309-217-6453'}
-*
-* with wrong image HREF
-*       {hrefImage: {$regex: " 2x"}}
-* */
-
-// NOTE: use the code to convert/update fields of articles
-// const updateMe: Article[] = await (await collections.articles.find(
-//     {title: {$regex: 'trittbrett', $options: 'i'}}
-// )).toArray();
-// for (const a of updateMe) {
-//     await collections.articles.updateOne({_id: a._id}, {$set: {isIgnored: true}})
-// }
-
-
-// Note: Remove items, which was not considered yet by user
-// const updateMe: Article[] = await (await collections.articles.find(
-//     {isIgnored: {$exists: false}, isFavorite: {$exists: false}}
-// )).toArray();
-// for (const a of updateMe) {
-//     await collections.articles.deleteOne({_id: a._id})
-// }
-
-// const updateMe: Article[] = await (await collections.articles.find(
-//     {searchKeywords: {$in: ["bretter"]}}
-// )).toArray();
-// for (const a of updateMe) {
-//     if (!a.isFavorite) {
-//         await collections.articles.deleteOne({_id: a._id})
-//     }
-// }
-
 let searchRequestsCounter = 0
 
 const STOP_CRAWLING = true
@@ -61,7 +21,7 @@ export const PAUSE_MS = 1000
 * only allowed to be used in searches.*/
 const FORCE_UPDATE = false
 const DEBUG_SEARCH_KEYWORDS: string[] = [] // ['balken']
-export const DO_HEADLESS = true
+export const DO_HEADLESS = false
 
 // minimal pause between single search requests
 const MIN_TIME_BETWEEN_SEARCHES_MINUTES = 360 // 360
@@ -99,6 +59,13 @@ const updateOrInsert = async (found: any, object: any, updatedFields: any) => {
 }
 
 async function handleArticle(searchKeyword, found, article) {
+
+    if (article.priceEur > 10000) {
+        // avoid crawling for buildings etc.
+        log.info(`Skipping article href ${article.href}, price is > 10k eur`)
+        return
+    }
+
     if (found) {
 
         return

@@ -1,8 +1,7 @@
-import {collections, connectToDatabase} from "./services/database.service";
+import {collections, connectToDatabase} from "./services/database.service.ts";
 import {Article} from "./models/article";
 import {log} from "crawlee";
-import {batchGeocodeLocations, geocodeLocation} from "./utils/geocoding";
-import {sleep} from "./utils/utils";
+import {batchGeocodeLocations} from "./utils/geocoding.ts";
 
 const client = await connectToDatabase()
 

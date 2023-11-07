@@ -5,13 +5,16 @@ import {batchGeocodeLocations} from "./utils/geocoding.ts";
 
 const client = await connectToDatabase()
 
-const articlesWithoutGeolocation: Article[] = await (await collections.articles.find(
+const articlesWithoutGeolocation: Article[] = await (collections.articles!!.find(
     {locationGeocoded: null}
 )).toArray();
 
 const startDate = new Date()
 
-const unknownGeolocations = articlesWithoutGeolocation.map(a => a.location).filter((value, index, array) => array.indexOf(value) === index);
+const unknownGeolocations: string[] = articlesWithoutGeolocation
+    .map(a => a.location)
+    .filter((value, index, array) => value && array.indexOf(value) === index)
+    .filter((value) => value !== undefined);
 
 log.info(``)
 log.info(``)
@@ -25,14 +28,17 @@ log.info(``)
 //     await collections.geocodingLocations.deleteMany({locationString: loc});
 // }
 
-if (unknownGeolocations.length > 0) {
+if (unknownGeolocations && unknownGeolocations.length > 0) {
     const geocoded = await batchGeocodeLocations(unknownGeolocations)
     for (const locIndex in unknownGeolocations) {
-        const existingLocGeocoding = await collections.geocodingLocations.findOne({locationString: unknownGeolocations[locIndex]});
+        const existingLocGeocoding = await collections.geocodingLocations!!.findOne({locationString: unknownGeolocations[locIndex]});
         const resolvedLocGeocoding = geocoded[locIndex].error ? null : geocoded[locIndex].value.shift()
         if (!existingLocGeocoding && resolvedLocGeocoding) {
             log.info(`New location ${unknownGeolocations[locIndex]}`)
-            await collections.geocodingLocations.insertOne({locationString: unknownGeolocations[locIndex], locationOsm: resolvedLocGeocoding})
+            await collections.geocodingLocations!!.insertOne({
+                locationString: unknownGeolocations[locIndex],
+                locationOsm: resolvedLocGeocoding
+            })
         }
 
         if (!resolvedLocGeocoding) {
@@ -49,9 +55,9 @@ for (const index in articlesWithoutGeolocation) {
     const locationSplitted = locationStr.split('-')
     locationStr = (locationSplitted.length > 0) ? locationSplitted[0].trim() : locationStr
 
-    const existingLocGeocoding = await collections.geocodingLocations.findOne({locationString: locationStr});
+    const existingLocGeocoding = await collections.geocodingLocations!!.findOne({locationString: locationStr});
     if (existingLocGeocoding && !articlesWithoutGeolocation[index].locationGeocoded) {
-        log.info(`Update article ${articleHref} with "${locationStr}"`)
+        log.debug(`Update article ${articleHref} with "${locationStr}"`)
         await collections.articles?.updateOne({_id: articleId}, {$set: {locationGeocoded: existingLocGeocoding.locationOsm}})
     }
 }

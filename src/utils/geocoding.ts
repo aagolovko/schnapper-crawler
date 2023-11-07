@@ -19,10 +19,12 @@ export async function geocodeLocation(location: string) {
 
     let locationStr = (locationSplitted.length > 0) ? locationSplitted[0].trim() : location
 
-    const foundLocation = await collections.geocodingLocations.findOne({ locationString: locationStr });
-
-    if ( foundLocation?.locationOsm) {
-        return foundLocation.locationOsm
+    let foundLocation
+    if (collections.geocodingLocations) {
+        foundLocation = await collections.geocodingLocations.findOne({ locationString: locationStr });
+        if ( foundLocation?.locationOsm) {
+            return foundLocation.locationOsm
+        }
     }
 
     let locationGeocoded
@@ -34,7 +36,7 @@ export async function geocodeLocation(location: string) {
         log.warning(`geocodeLocation first try failed for ${locationStr} with ${e}`)
     }
 
-    let locationStrGermanPlz
+    let locationStrGermanPlz: string | undefined
     if (locationStr && !locationGeocoded) {
         locationStrGermanPlz = locationStr.split(' ')[0].trim()
         try {
@@ -44,17 +46,19 @@ export async function geocodeLocation(location: string) {
         }
     }
 
-    if (!locationGeocoded) {
-        log.warning(`geolocation finally failed '${locationStr}', derived from '${location}'`)
-        await collections.geocodingLocations.insertOne({locationString: locationStr, locationStringGermanPlz: locationStrGermanPlz, locationOsm: null})
-    }
+    if (collections.geocodingLocations) {
+        if (!locationGeocoded && locationStrGermanPlz) {
+            log.warning(`geolocation finally failed '${locationStr}', derived from '${location}'`)
+            await collections.geocodingLocations.insertOne({locationString: locationStr, locationStrGermanPlz: locationStrGermanPlz})
+        }
 
-    if (locationGeocoded && !foundLocation) {
-        await collections.geocodingLocations.insertOne({locationString: locationStr, locationStringGermanPlz: locationStrGermanPlz, locationOsm: locationGeocoded})
-    }
+        if (locationGeocoded && !foundLocation) {
+            await collections.geocodingLocations.insertOne({locationString: locationStr, locationStrGermanPlz: locationStrGermanPlz, locationOsm: locationGeocoded})
+        }
 
-    if (locationGeocoded && foundLocation && !foundLocation?.locationOsm) {
-        await collections.geocodingLocations.updateOne({_id: foundLocation._id}, {$set: {locationOsm: locationGeocoded}})
+        if (locationGeocoded && foundLocation && !foundLocation?.locationOsm) {
+            await collections.geocodingLocations.updateOne({_id: foundLocation._id}, {$set: {locationOsm: locationGeocoded}})
+        }
     }
 
     return locationGeocoded
@@ -65,7 +69,7 @@ export async function batchGeocodeLocations(locations: string[]) {
 
     const locationsCleaned = locations.map( loc => {
         const locationSplitted = loc.split('-')
-        let locationStr = (locationSplitted.length > 0) ? locationSplitted[0].trim() : location
+        let locationStr = (locationSplitted.length > 0) ? locationSplitted[0].trim() : loc
         return locationStr
     })
 

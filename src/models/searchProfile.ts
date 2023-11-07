@@ -1,4 +1,5 @@
 import {ObjectId} from "mongodb";
+import {SearchLocation} from "./searchLocation.ts";
 
 export interface SearchProfile {
     // TODO: remove, we have _id
@@ -42,12 +43,10 @@ export interface SearchProfile {
     searchSchedule?: string;
 
     /**
-     * if specified, use only this locations for search. Otherwise
+     * if specified, use only these locations for search. Otherwise
      * use all other active locations as found in Mongo.
      */
-    locations?: SearchLocation[];
-
-    maxPrice?: number;
+    locations: SearchLocation[];
 
     isActive: boolean;
 }

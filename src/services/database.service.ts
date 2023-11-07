@@ -8,18 +8,18 @@ import {SearchRequest} from "../models/searchRequest";
 import {GeocodingLocation} from "../models/geocodingLocation";
 
 export const collections: {
-    articles: mongoDB.Collection<Article>,
-    searchProfiles: mongoDB.Collection<SearchProfile>
-    searchRequests: mongoDB.Collection<SearchRequest>
-    geocodingLocations: mongoDB.Collection<GeocodingLocation>
+    articles?: mongoDB.Collection<Article>,
+    searchProfiles?: mongoDB.Collection<SearchProfile>,
+    searchRequests?: mongoDB.Collection<SearchRequest>,
+    geocodingLocations?: mongoDB.Collection<GeocodingLocation>,
 } = {};
 
-export async function connectToDatabase(): MongoClient {
+export async function connectToDatabase(): Promise<MongoClient> {
     // Pulls in the .env file so it can be accessed from process.env. No path as .env is in root, the default location
     dotenv.config();
 
     // Create a new MongoDB client with the connection string from .env
-    const client = new mongoDB.MongoClient(process.env.DB_CONN_STRING);
+    const client = new mongoDB.MongoClient(process.env.DB_CONN_STRING!!);
 
     // Connect to the cluster
     await client.connect();
@@ -31,7 +31,7 @@ export async function connectToDatabase(): MongoClient {
     await applySchemaValidation(db);
 
     // Connect to the collection with the specific name from .env, found in the database previously specified
-    const articlesCollection = db.collection<Article>(process.env.ARTICLES_COLLECTION_NAME);
+    const articlesCollection = db.collection<Article>(process.env.ARTICLES_COLLECTION_NAME!!);
     const searchProfilesCollection = db.collection<SearchProfile>('searchProfiles');
     const searchRequestsCollection = db.collection<SearchRequest>('searchRequests');
     const geocodingLocationsCollection = db.collection<GeocodingLocation>('geocodingLocations');
@@ -75,7 +75,7 @@ async function applySchemaValidation(db: mongoDB.Db) {
         validator: jsonSchema
     }).catch(async (error: mongoDB.MongoServerError) => {
         if (error.codeName === 'NamespaceNotFound') {
-            await db.createCollection(process.env.ARTICLES_COLLECTION_NAME, {validator: jsonSchema});
+            await db.createCollection(process.env.ARTICLES_COLLECTION_NAME!!, {validator: jsonSchema});
         }
     });
 }

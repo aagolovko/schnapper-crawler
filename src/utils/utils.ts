@@ -1,24 +1,16 @@
-export const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+export const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 
 export const searchPageNumber = (url: string) => {
-    let searchPageNum = 1
-
-    if (url == 'https://www.kleinanzeigen.de/') {
-        // the page where the query is entered
-        return 0
-    } else if (!url.includes('seite:')) {
-        // first search page
-        return  1
-    } else {
+    if (url.includes('seite:')) {
         let urlSplitted = url.split('/');
-        searchPageNum = urlSplitted[4]?.split(':').at(1)
+        return Number(urlSplitted[4]?.split(':').at(1))
+    } else {
+        return 0
     }
-
-    return searchPageNum
 };
 
-export const pad = (num, size) => {
-    num = num.toString();
-    while (num.length < size) num = "0" + num;
+export const pad = (num: number, size: number) => {
+    let numStr = num.toString();
+    while (numStr.length < size) numStr = "0" + num;
     return num;
 }

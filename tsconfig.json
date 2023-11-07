@@ -1,11 +1,13 @@
 {
     "extends": "@apify/tsconfig",
     "compilerOptions": {
+        "allowImportingTsExtensions": true,
         "module": "ES2022",
         "target": "ES2022",
         "outDir": "dist",
         "noUnusedLocals": false,
         "lib": [
+            "es2021",
             "DOM",
             "es2015.promise"
         ]

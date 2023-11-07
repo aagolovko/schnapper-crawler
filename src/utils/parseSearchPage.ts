@@ -6,14 +6,19 @@ import {log} from "crawlee";
 import {Article} from '../models/article';
 import * as fs from "fs";
 
-export async function parseSearchPage(searchPagePath: string, metaInfoHandler?: (from: number, to: number, totalFoundCounter: number) => void): Article[] {
+export function parseSearchPage(searchPagePath: string): Article[] {
     const searchPageContent = fs.readFileSync(searchPagePath, 'utf8')
 
     const root = parse(searchPageContent)
-    const summary = root.querySelector('.breadcrump-summary')?.innerText?.match(/(\d+)/gm).slice(0, 3)
-    if (summary && summary.length == 3 && metaInfoHandler) {
-        metaInfoHandler(Number(summary[0]), Number(summary[1]), Number(summary[2]))
+
+    const summary = root.querySelector('.breadcrump-summary')?.innerText?.match(/(\d+)/gm)?.slice(0, 3)
+    if (summary && summary.length == 3) {
+        const from = Number(summary[0])
+        const to = Number(summary[1])
+        const total = Number(summary[2])
+        log.info(`Processing articles [${from} - ${to}] of ${total}`)
     }
+
     const articles = root.querySelectorAll('#srchrslt-adtable article')
 
     const articlesJson: Article[] = []
@@ -29,7 +34,7 @@ export async function parseSearchPage(searchPagePath: string, metaInfoHandler?: 
             log.debug(`Failed to resolve hrefImage for ${href}`);
         }
 
-        const location: String = el.querySelector('div .aditem-main--top--left i')?.nextSibling.innerText?.replace(/\n/gi, ' ').replace(/\s+/gi, ' ').replace(/\(.*\)+/gi, ' ').trim()
+        const location = el.querySelector('div .aditem-main--top--left i')?.nextSibling.innerText?.replace(/\n/gi, ' ').replace(/\s+/gi, ' ').replace(/\(.*\)+/gi, ' ').trim()
 
         const createdOn = el.querySelector('div .aditem-main--top--right i')?.nextSibling.innerText?.replace(/\n/gi, ' ').replace(/\s+/gi, ' ').trim()
 
@@ -46,39 +51,45 @@ export async function parseSearchPage(searchPagePath: string, metaInfoHandler?: 
             createdOnDate.setMinutes(parseInt(hoursMinutes[1]))
 
             if (createdOnSplitted[0] == "Gestern") {
-                createdOnDate = new Date(createdOnDate.getTime() - 24*60*60*1000)
+                createdOnDate = new Date(createdOnDate.getTime() - 24 * 60 * 60 * 1000)
             } else if (createdOnSplitted[0] == "Heute") {
                 // do nothing
             }
         } else {
             createdOnSplitted = createdOn.split('.')
             createdOnDate.setDate(parseInt(createdOnSplitted[0]))
-            createdOnDate.setMonth(parseInt(createdOnSplitted[1])-1)
-            createdOnDate.setYear(parseInt(createdOnSplitted[2]))
+            createdOnDate.setMonth(parseInt(createdOnSplitted[1]) - 1)
+            createdOnDate.setFullYear(parseInt(createdOnSplitted[2]))
             createdOnDate.setHours(0)
             createdOnDate.setMinutes(0)
             createdOnDate.setSeconds(0)
         }
 
         const price = el.querySelector('.aditem-main--middle--price-shipping--price')?.innerText?.replace(/\n/gi, ' ').replace(/\s+/gi, ' ').trim()
-        const priceEur = price ? parseInt(price.match(/\d/g)?.join('')) : 0
+        const pricePruned = price?.match(/\d/g)?.join('')
+        const priceEur = pricePruned ? parseInt(pricePruned) : 0
         const isShippingStr = el.querySelector('.aditem-main--middle--price-shipping--shipping')?.innerText?.replace(/\n/gi, ' ').replace(/\s+/gi, ' ').trim()
         const isShipping = isShippingStr != undefined ? true : false
 
 
         const title = el.querySelector('.text-module-begin a')?.innerText
 
-        articlesJson.push({
-            href,
-            hrefImage,
-            location,
-            priceEur,
-            locationGeocoded: undefined, // calculated during saving to db, if articly not in db yet
-            price,
-            isShipping,
-            title,
-            createdOn: createdOnDate
-        })
+        if (href && location) {
+            articlesJson.push({
+                href,
+                hrefImage,
+                location,
+                priceEur,
+                locationGeocoded: undefined, // calculated during saving to db, if articly not in db yet
+                price,
+                isShipping,
+                title,
+                searchKeywords: [],
+                createdOn: createdOnDate
+            })
+        } else {
+            log.warning(`Either href or location not set for title '${title}'`);
+        }
     }
 
     return articlesJson

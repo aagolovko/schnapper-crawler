@@ -1,187 +1,124 @@
-import {writeFileSync} from 'fs';
 import {collections, connectToDatabase} from "./services/database.service.ts";
-import {crawlForSearchProfile} from "./utils/crawlForSearchProfile.ts";
 import {log} from "crawlee";
-import {sleep} from "./utils/utils.ts";
-import {parseSearchPage} from "./utils/parseSearchPage.ts";
 import {Article} from "./models/article";
 
 import {SearchRequest} from "./models/searchRequest";
 import {geocodeLocation} from "./utils/geocoding.ts";
+import {DEBUG_SEARCH_KEYWORDS, FORCE_UPDATE, MIN_TIME_BETWEEN_SEARCHES_MINUTES} from "./config.ts";
+import {crawlForSearchProfile} from "./utils/crawlForSearchProfile.ts";
+import {writeFileSync} from "fs";
+import {parseSearchPage} from "./utils/parseSearchPage.ts";
 
 const client = await connectToDatabase()
-const found = await collections.searchProfiles.find({});
-const searchProfiles = await found.toArray();
-
-let searchRequestsCounter = 0
-
-const STOP_CRAWLING = true
-export const PAUSE_MS = 1000
-/* use next variables for debugging. The array containes keywords, which are
-* only allowed to be used in searches.*/
-const FORCE_UPDATE = false
-const DEBUG_SEARCH_KEYWORDS: string[] = [] // ['balken']
-export const DO_HEADLESS = false
-
-// minimal pause between single search requests
-const MIN_TIME_BETWEEN_SEARCHES_MINUTES = 360 // 360
-
-const searchRequests: any = []
-for (const searchProfile of searchProfiles) {
-    for (const searchKeyword of searchProfile.keywords) {
-        for (const searchLocation of searchProfile.locations) {
-            const searchRequest: SearchRequest = {
-                keyword: searchKeyword,
-                searchArea: searchLocation.searchArea,
-                searchDistance: searchLocation.searchDistance,
-                maxPrice: searchProfile?.maxPrice
-            }
-
-            searchRequests.push(searchRequest)
-        }
-    }
-}
+const searchProfiles = await (collections.searchProfiles!!.find({}).toArray());
 
 const startDate = new Date()
-log.info(``)
-log.info(``)
-log.info(`Going to issue for ${searchRequests.length} search requests`)
 log.info(`Start: ${startDate.toLocaleString()}`);
-log.info(``)
-log.info(``)
 
-const updateOrInsert = async (found: any, object: any, updatedFields: any) => {
-    if (found) {
-        await collections.searchRequests.updateOne({_id: found._id}, {$set: updatedFields})
-    } else {
-        await collections.searchRequests.insertOne({...object, ...updatedFields})
-    }
-}
+function handleArticle(searchKeyword: string, articleDb: Article | null, articleWeb: Article) {
 
-async function handleArticle(searchKeyword, found, article) {
-
-    if (article.priceEur > 10000) {
+    if (articleWeb.priceEur && articleWeb.priceEur > 10000) {
         // avoid crawling for buildings etc.
-        log.info(`Skipping article href ${article.href}, price is > 10k eur`)
-        return
-    }
-
-    if (found) {
-
-        return
-
-        if (!article.searchKeywords) {
-            article.searchKeywords = []
+        log.info(`Skipping article href ${articleWeb.href}, price is > 10k eur`)
+    } else if (articleDb) {
+        if (!articleWeb.searchKeywords) {
+            articleWeb.searchKeywords = []
         }
 
-        if (!article.searchKeywords.includes(searchKeyword)) {
-            article.searchKeywords.push(searchKeyword)
+        if (!articleWeb.searchKeywords.includes(searchKeyword)) {
+            articleWeb.searchKeywords.push(searchKeyword)
         }
-
-        log.info(`Update article (keywords), href ${article.href}, ${article.location}`)
 
         try {
-            await collections.articles?.updateOne({_id: found._id}, {$set: {...found, ...article}})
+            collections.articles?.updateOne({_id: articleDb._id}, {$set: {...articleDb, ...articleWeb}})
+            log.debug(`Updated article (keywords), href ${articleWeb.href}, ${articleWeb.location}`)
         } catch (error) {
             log.error(`Failed ${error}`)
         }
     } else {
-        log.info(`Insert article, href https://ebay-kleinanzeigen.de${article.href}, ${article.location}`)
-        const locationGeocoded = await geocodeLocation(article.location)
+        const locationGeocoded = geocodeLocation(articleWeb.location)
         try {
-            await collections.articles?.insertOne({...article, locationGeocoded, searchKeywords: [searchKeyword]})
+            collections.articles?.insertOne({...articleWeb, locationGeocoded, searchKeywords: [searchKeyword]})
+            log.info(`Inserted article, href https://ebay-kleinanzeigen.de${articleWeb.href}, ${articleWeb.location}`)
         } catch (error) {
             log.error(`Failed ${error}`)
         }
     }
 }
 
-for (const searchProfile of searchProfiles) {
+export async function searchRequestsToCrawl() {
+    const searchRequests: SearchRequest[] = []
+    for (const searchProfile of searchProfiles) {
 
-    if (!searchProfile.isActive) {
-        log.info(`Skip: search profile '${searchProfile.title}', because not active`)
-        continue
-
-    }
-
-    log.info(`Found search profile '${searchProfile.title}'`)
-
-    for (const searchKeyword of searchProfile.keywords) {
-
-        if (DEBUG_SEARCH_KEYWORDS.length > 0 && !(DEBUG_SEARCH_KEYWORDS.includes(searchKeyword)))
+        if (!searchProfile.isActive) {
+            // log.info(`Skip: search profile '${searchProfile.title}', because not active`)
             continue
 
-        if (searchKeyword.startsWith("-"))
-            continue
+        }
 
-        for (const searchLocation of searchProfile.locations) {
-            const searchRequest = {
-                keyword: searchKeyword,
-                searchArea: searchLocation.searchArea,
-                searchDistance: searchLocation.searchDistance,
-                maxPrice: searchProfile.maxPrice
-            }
+        // log.info(`Found search profile '${searchProfile.title}'`)
 
-            const foundSearchRequest = await collections.searchRequests.findOne(searchRequest);
+        for (const searchKeyword of searchProfile.keywords) {
 
-            const diffInMinutesSearchRequest: number = foundSearchRequest?.lastSearch ? ((Date.now() - new Date(foundSearchRequest?.lastSearch).getTime())/(1000 * 60)).toFixed() : 0
-            const doSearchSearchRequest = !foundSearchRequest?.lastSearch || diffInMinutesSearchRequest > MIN_TIME_BETWEEN_SEARCHES_MINUTES
-            if (!doSearchSearchRequest && !FORCE_UPDATE) {
-                log.info(`Skip: search keyword '${searchRequest.keyword}', crawled ${diffInMinutesSearchRequest} minutest ago`)
+            if (DEBUG_SEARCH_KEYWORDS.length > 0 && !(DEBUG_SEARCH_KEYWORDS.includes(searchKeyword)))
                 continue
-            }
 
-            searchRequestsCounter++
+            if (searchKeyword.startsWith("-"))
+                continue
 
-            let totalArticlesBySearchRequest: number
-            log.info(`[${searchRequestsCounter.toString().padStart(3, '0')}/${searchRequests.length.toString().padStart(3, '0')}]: Search request ${JSON.stringify(searchRequest)}`)
-            await crawlForSearchProfile(searchRequest, async (content: string, spHref: string): boolean => {
-                const splitted = spHref.split('/')
-                const fileName = splitted.length == 0 ? 'unknown' : splitted.slice(3).join('-').replaceAll(':', '-')
-                let searchPageFile = `search-pages/${fileName}.html`;
-                writeFileSync(searchPageFile, content);
-
-                const articles: Article[] = await parseSearchPage(searchPageFile, (from, to, totalFoundCounter) => {
-                    log.info(`Processing articles [${from} - ${to}] of ${totalFoundCounter}`)
-                    if (!totalArticlesBySearchRequest) {
-                        totalArticlesBySearchRequest = totalFoundCounter
-                    }
-                });
-
-                let handledArticleCounter = 0
-                for (const article of articles) {
-                    const found = await collections.articles.findOne({href: article.href});
-
-                    // // we assume articles are ordered by time in search page
-                    // // so it is safe to skip the rest of results without loosing anything
-                    // if (found && !FORCE_UPDATE) {
-                    //     if (handledArticleCounter == 0) {
-                    //         log.info(`\x1B[34mNo new articles`)
-                    //     } else {
-                    //         log.info(`\x1B[31mNew articles found: ${handledArticleCounter}`)
-                    //     }
-                    //
-                    //     return STOP_CRAWLING
-                    // }
-                    handledArticleCounter++
-                    await handleArticle(searchKeyword, found, article);
+            for (const searchLocation of searchProfile.locations) {
+                const searchRequest = {
+                    keyword: searchKeyword,
+                    searchArea: searchLocation.searchArea,
+                    searchDistance: searchLocation.searchDistance,
+                    maxPrice: searchProfile.maxPrice
                 }
 
-                return !STOP_CRAWLING
-            })
+                const foundSearchRequest = await collections.searchRequests!!.findOne(searchRequest);
 
-            await updateOrInsert(foundSearchRequest, searchRequest, {articlesFound: totalArticlesBySearchRequest, lastSearch: new Date()})
+                const diffInMinutesSearchRequest: number = foundSearchRequest?.lastSearch ? (Date.now() - new Date(foundSearchRequest?.lastSearch).getTime()) / (1000 * 60) : 0
+                const doSearchSearchRequest = !foundSearchRequest?.lastSearch || diffInMinutesSearchRequest > MIN_TIME_BETWEEN_SEARCHES_MINUTES
+                if (!doSearchSearchRequest && !FORCE_UPDATE) {
+                    // TODO: tmp
+                    // log.info(`Skip: search keyword '${searchRequest.keyword}', crawled ${diffInMinutesSearchRequest} minutest ago`)
+                    continue
+                }
 
-            // await updateOrInsert(foundSearchRequest, searchRequest, {lastSearch: new Date()})
-            await sleep(1000)
+                searchRequests.push(searchRequest)
+            }
         }
     }
 
-    log.info(``)
-    log.info(``)
+    return searchRequests
 }
 
-let find = await collections.articles.find();
+const searchPageHandler = async function (searchKeyword: string, content: string, spHref: string) {
+    const splitted = spHref.split('/')
+    const fileName = splitted.length == 0 ? 'unknown' : splitted.slice(3).join('-').replaceAll(':', '-')
+    let searchPageFile = `search-pages/${fileName}.html`;
+    writeFileSync(searchPageFile, content);
+
+    const articles: Article[] = parseSearchPage(searchPageFile);
+
+    log.info(`Articles found on the page ${spHref}: ${articles.length}`)
+    for (const article of articles) {
+
+        const articleDb = await collections.articles!!.findOne({href: article.href})
+        handleArticle(searchKeyword, articleDb, article);
+    }
+}
+
+
+let numOfSearchRequests = (await searchRequestsToCrawl()).length
+let retries = 1
+while (numOfSearchRequests > 0 ){
+    log.info(`Try number ${retries}, search requests left: ${numOfSearchRequests}`)
+    await crawlForSearchProfile(searchPageHandler)
+    retries++
+    numOfSearchRequests = (await searchRequestsToCrawl()).length
+}
+
+let find = collections.articles!!.find();
 const totalArticles = (await find.toArray()).length;
 log.info(``)
 log.info(`Total of ${totalArticles} in db now`)
@@ -193,6 +130,8 @@ log.info(``)
 log.info(`End: ${endDate.toLocaleString()}`);
 const diffInMinutes = (endDate.getTime() - startDate.getTime())/(1000*60)
 log.info(`Duration (minutes): ${diffInMinutes}`)
+
+await client.close()
 
 log.info(`>>> DONE <<<<`)
 log.info(``)

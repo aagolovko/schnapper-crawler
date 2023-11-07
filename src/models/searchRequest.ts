@@ -6,6 +6,6 @@ export interface SearchRequest {
     searchArea: string;
     searchDistance: string;
     maxPrice?: number;
-    lastSearch?: timestamp;
+    lastSearch?: Date;
     articlesFound?: number;
 }

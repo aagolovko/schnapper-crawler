@@ -1,5 +1,22 @@
 # TODO: 
 
+
+# actually we should avoid this, but sometimes:
+use kleinanzeigen
+
+# set emmpty object to "null", run "02. geolocatin" 
+db.articles.updateMany({locationGeocoded: {}}, {$set: {locationGeocoded: null}} )
+
+# if both ignored/favorite is set, remove favorite flag and reconsider items
+db.articles.updateMany({isIgnored: true, isFavorite: true}, {$set: {isIgnored: true, isFavorite: null}} )
+
+# remove articles found for specific keyword
+db.articles.deleteMany({searchKeywords: {$in: ['Mighty Plus']}})
+
+# add "last checked" field to avoid deletion of item not too often
+# add UI to remove articles for keyword
+# fix: "84072 Bayern - Au" changed to "84072 Au" and geocoded to schweiz
+live
 * proble: failed detect isDeleted "/s-anzeige/ivar-regal-zu-verschenken/2536126591-192-6350" 
 
 * do not save items, if too away. detect "Alternative Anzeigen in der Umgebung" and skip items after it

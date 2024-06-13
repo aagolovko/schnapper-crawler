@@ -7,7 +7,7 @@ import {RequestQueue} from "apify";
 import {v4 as uuidv4} from 'uuid';
 import {searchRequestsToCrawl} from "../crawling.ts";
 import {Page} from "playwright";
-import {DO_HEADLESS, INITIAL_SEARCH_PAGE, PAUSE_MS} from "../config.ts";
+import {DO_HEADLESS, INITIAL_SEARCH_PAGE, PAUSE_MS, WAIT_FOR_SELECTOR} from "../config.ts";
 import {parse} from "node-html-parser";
 import {collections} from "../services/database.service.ts";
 
@@ -189,7 +189,7 @@ async function clickAcceptCookies(page: Page) {
 
     // >> close "accept cookies" only now, after text for search is entered
     let selector = '//button[@id="gdpr-banner-accept"]'
-    page.waitForSelector(selector, {timeout: 5000}).then((button) => {
+    page.waitForSelector(selector, {timeout: WAIT_FOR_SELECTOR}).then((button) => {
         button.click()
     }, (failure) => {
         log.warning(`Failed to resolve 'cookies' banner, but it is not a problem: ${failure}`)
@@ -199,7 +199,7 @@ async function clickAcceptCookies(page: Page) {
 async function clickCloseRegisterPopup(page: Page) {
     try {
         let selector = '//a[@class="j-overlay-close overlay-close"]'
-        let element = await page.waitForSelector(selector)
+        let element = await page.waitForSelector(selector, {timeout: WAIT_FOR_SELECTOR})
         await element.click()
     } catch (e) {
         log.debug(`clickCloseRegisterPopup ${e}`)
@@ -222,7 +222,7 @@ async function inputSearchDistance(page: Page, searchDistance: string) {
         await page.keyboard.press('ArrowDown')  // +10km
         await page.keyboard.press('ArrowDown') // +20km
         await page.keyboard.press('ArrowDown') // +30km
-        await page.keyboard.press('ArrowDown') // +50km
+        //await page.keyboard.press('ArrowDown') // +50km
         // await page.keyboard.press('ArrowDown') // +100km
         await page.keyboard.press('Enter')
     } catch (e) {

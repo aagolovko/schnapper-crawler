@@ -5,7 +5,7 @@ import {v4 as uuidv4} from "uuid";
 import {RequestQueue} from "apify";
 import {parse} from "node-html-parser";
 import {collections} from "../services/database.service.ts";
-import {DO_HEADLESS} from "../config.ts";
+import {DO_HEADLESS, MIN_TIME_BETWEEN_SEARCHES_MINUTES} from "../config.ts";
 
 export async function crawlForArticle(articleHrefs: string[]) {
     let uuid = uuidv4()
@@ -29,16 +29,29 @@ export async function crawlForArticle(articleHrefs: string[]) {
 
         await page.once('load', () => { });
 
+        let expiredCounter = 0
         for (const articleHref of articleHrefs) {
 
-            if (!articleHref.includes("/s-anzeige/regentonne-garantia-300-liter-mit-auslaufhahn/2605980854-87-5976")) {
+            // if (!articleHref.includes("/s-anzeige/wamsler-kaminofen/2587538733-87-6354")) {
+            //     continue
+            // }
+
+            const hrefShort = articleHref.replace('https://www.kleinanzeigen.de','')
+                .replace('https://ebay-kleinanzeigen.de','')
+                .replace('//','/')
+
+            const articleDb = await collections.articles!!.findOne({ href: hrefShort});
+            const diffInMinutesSearchRequest: number = articleDb?.lastChecked ? (Date.now() - new Date(articleDb?.lastChecked).getTime()) / (1000 * 60) : 0
+            const doCheck = !articleDb?.lastChecked || diffInMinutesSearchRequest > MIN_TIME_BETWEEN_SEARCHES_MINUTES
+
+            if (!doCheck) {
+                log.info(`\x1B[32mSkipped article check for ${articleHref}`)
                 continue
             }
 
             await page.goto(articleHref)
 
-            await sleep(100)
-            log.info(`Checking article ${page.url()}`)
+            await sleep(300)
             await page.once('load', () => { });
 
 
@@ -46,7 +59,7 @@ export async function crawlForArticle(articleHrefs: string[]) {
             const root = parse(content)
 
             let expiredText = root.querySelectorAll('.pvap-reserved-image-veil:not(.is-hidden)')
-                .map( x => x.text)
+                .map( element => element.text)
                 .shift()
             expiredText ??= ""
 
@@ -58,21 +71,21 @@ export async function crawlForArticle(articleHrefs: string[]) {
                 msg2 ??= ""
                 isDeleted = (msg === "Die gewünschte Anzeige ist nicht mehr verfügbar." || msg2.includes("Gelöscht") )
             }
-            if (isDeleted) {
+
+            if (isDeleted && articleDb) {
                 log.info(`\x1B[31mExpired article ${articleHref}`)
-                let hrefShort = articleHref.replace('https://www.kleinanzeigen.de','')
-                hrefShort = hrefShort.replace('https://ebay-kleinanzeigen.de','')
-                hrefShort = hrefShort.replace('//','/')
-
-                const article = await collections.articles!!.findOne({ href: hrefShort});
-                if (article) {
-                    await collections.articles!!.updateOne({_id: article._id}, {$set: {unavailableOn: new Date()}})
-                }
-
+                await collections.articles!!.updateOne({_id: articleDb._id}, {$set: {unavailableOn: new Date()}})
+                expiredCounter++
+            } else if (articleDb) {
+                log.info(`Article still available for ${articleHref}`)
+                await collections.articles!!.updateOne({_id: articleDb._id}, {$set: {lastChecked: new Date()}})
             }
-
-            await sleep(100)
         }
+
+        log.info(``)
+        log.info(``)
+        log.info(`Total of expired articles ${expiredCounter}`)
+        log.info(``)
 
     }
 

@@ -16,6 +16,7 @@ export interface Article {
     isIgnored?: boolean;
     createdOn: Date;
     searchKeywords: string[];
+    lastChecked?: Date;
 
     unavailableOn?: Date; // the timestamp when the item was detetected as unavailable
 }

@@ -27,7 +27,7 @@
     "scripts": {
         "start": "npm run start:dev",
         "start:prod": "node dist/crawling.js",
-        "start:dev:crawl": "ts-node-esm -T src/crawling.ts",
+        "start:dev:crawl": "ts-node-esm -T src/crawling.ts; ts-node-esm -T src/geolocating.ts",
         "start:dev:cleaning": "ts-node-esm -T src/cleaning.ts",
         "start:dev:geolocating": "ts-node-esm -T src/geolocating.ts",
         "startsp:dev": "ts-node-esm -T src/utils/parseSearchPage.ts",

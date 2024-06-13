@@ -4,7 +4,12 @@ import {Article} from "./models/article";
 
 import {SearchRequest} from "./models/searchRequest";
 import {geocodeLocation} from "./utils/geocoding.ts";
-import {DEBUG_SEARCH_KEYWORDS, FORCE_UPDATE, MIN_TIME_BETWEEN_SEARCHES_MINUTES} from "./config.ts";
+import {
+    DEBUG_SEARCH_KEYWORDS,
+    FORCE_UPDATE,
+    MIN_TIME_BETWEEN_SEARCHES_MINUTES,
+    ONLY_ALLOWED_KEYWORDS
+} from "./config.ts";
 import {crawlForSearchProfile} from "./utils/crawlForSearchProfile.ts";
 import {writeFileSync} from "fs";
 import {parseSearchPage} from "./utils/parseSearchPage.ts";
@@ -14,6 +19,9 @@ const searchProfiles = await (collections.searchProfiles!!.find({}).toArray());
 
 const startDate = new Date()
 log.info(`Start: ${startDate.toLocaleString()}`);
+
+
+await (collections.articles!!.updateMany({ locationGeocoded: {} }, {$set: {locationGeocoded: null}}))
 
 function handleArticle(searchKeyword: string, articleDb: Article | null, articleWeb: Article) {
 
@@ -39,7 +47,7 @@ function handleArticle(searchKeyword: string, articleDb: Article | null, article
         const locationGeocoded = geocodeLocation(articleWeb.location)
         try {
             collections.articles?.insertOne({...articleWeb, locationGeocoded, searchKeywords: [searchKeyword]})
-            log.info(`Inserted article, href https://ebay-kleinanzeigen.de${articleWeb.href}, ${articleWeb.location}`)
+            log.info(`Inserted article, href https://ebay-kleinanzeigen.de${articleWeb.href}, ${articleWeb.location}, (${articleWeb.price})`)
         } catch (error) {
             log.error(`Failed ${error}`)
         }
@@ -64,6 +72,9 @@ export async function searchRequestsToCrawl() {
                 continue
 
             if (searchKeyword.startsWith("-"))
+                continue
+
+            if (ONLY_ALLOWED_KEYWORDS.length > 0 && !ONLY_ALLOWED_KEYWORDS.includes(searchKeyword))
                 continue
 
             for (const searchLocation of searchProfile.locations) {
@@ -112,7 +123,10 @@ const searchPageHandler = async function (searchKeyword: string, content: string
 let numOfSearchRequests = (await searchRequestsToCrawl()).length
 let retries = 1
 while (numOfSearchRequests > 0 ){
-    log.info(`Try number ${retries}, search requests left: ${numOfSearchRequests}`)
+    log.info(`********************************************************************************`)
+    log.info(`>>>> Try number ${retries}, search requests left: ${numOfSearchRequests} <<<<<`)
+    log.info(`********************************************************************************`)
+
     await crawlForSearchProfile(searchPageHandler)
     retries++
     numOfSearchRequests = (await searchRequestsToCrawl()).length
@@ -131,7 +145,7 @@ log.info(`End: ${endDate.toLocaleString()}`);
 const diffInMinutes = (endDate.getTime() - startDate.getTime())/(1000*60)
 log.info(`Duration (minutes): ${diffInMinutes}`)
 
-await client.close()
+await client.close(true)
 
 log.info(`>>> DONE <<<<`)
 log.info(``)

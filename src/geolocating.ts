@@ -5,16 +5,30 @@ import {batchGeocodeLocations} from "./utils/geocoding.ts";
 
 const client = await connectToDatabase()
 
+await collections.geocodingLocations!!.updateMany({locationGeocoded: {}}, {$set: {locationGeocoded: null}} )
+
 const articlesWithoutGeolocation: Article[] = await (collections.articles!!.find(
     {locationGeocoded: null}
 )).toArray();
 
 const startDate = new Date()
 
-const unknownGeolocations: string[] = articlesWithoutGeolocation
+const unknownGeolocationsPrep: string[] = articlesWithoutGeolocation
     .map(a => a.location)
     .filter((value, index, array) => value && array.indexOf(value) === index)
-    .filter((value) => value !== undefined);
+    .filter((value) => value !== undefined)
+
+const unknownGeolocations: string[] = []
+for (const loc of unknownGeolocationsPrep) {
+    const x = await collections.geocodingLocations!!.findOne({
+        locationString: loc
+    })
+
+    if (x?.locationOsm == null) {
+        unknownGeolocations.push(loc)
+    }
+
+}
 
 log.info(``)
 log.info(``)
@@ -61,15 +75,15 @@ for (const index in articlesWithoutGeolocation) {
         await collections.articles?.updateOne({_id: articleId}, {$set: {locationGeocoded: existingLocGeocoding.locationOsm}})
     }
 }
-//
-// const endDate = new Date()
-// log.info(``)
-// log.info(`End: ${endDate.toLocaleString()}`);
-// const diffInMinutes = (endDate.getTime() - startDate.getTime())/(1000*60)
-// log.info(`Duration (minutes): ${diffInMinutes}`)
-//
-// log.info(``)
-// log.info(`>>> DONE <<<<`)
-// log.info(``)
-//
-// client.close()
+
+const endDate = new Date()
+log.info(``)
+log.info(`End: ${endDate.toLocaleString()}`);
+const diffInMinutes = (endDate.getTime() - startDate.getTime())/(1000*60)
+log.info(`Duration (minutes): ${diffInMinutes}`)
+
+log.info(``)
+log.info(`>>> DONE <<<<`)
+log.info(``)
+
+await client.close()

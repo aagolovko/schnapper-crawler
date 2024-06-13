@@ -1,0 +1,14 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="02. geolocating" type="js.build_tools.npm">
+    <package-json value="$PROJECT_DIR$/package.json" />
+    <command value="run" />
+    <scripts>
+      <script value="start:dev:geolocating" />
+    </scripts>
+    <node-interpreter value="project" />
+    <envs>
+      <env name="NODE_EXTRA_CA_CERTS" value="/System/Volumes/Data/opt/homebrew/etc/openssl@3/cert.pem" />
+    </envs>
+    <method v="2" />
+  </configuration>
+</component>

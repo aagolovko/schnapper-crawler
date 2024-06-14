@@ -10,6 +10,24 @@ db.articles.updateMany({locationGeocoded: {}}, {$set: {locationGeocoded: null}} 
 # if both ignored/favorite is set, remove favorite flag and reconsider items
 db.articles.updateMany({isIgnored: true, isFavorite: true}, {$set: {isIgnored: true, isFavorite: null}} )
 
+{ lastSearch: { $exists: true } }
+
+
+# for debugging with break points
+{
+    $or: [
+        { lastChecked: { $exists: true } },
+        { href: "/s-anzeige/ondis24-regentonne-mit-deckel-500-liter-wasserhahn-mit-filter/2786692625-87-5981" }
+    ]
+}
+
+
+{
+    $or: [
+        { lastChecked: { $gt: ISODate("2024-06-14T14:09:14.042+00:00") } }
+    ]
+}
+
 # remove articles found for specific keyword
 db.articles.deleteMany({searchKeywords: {$in: ['Mighty Plus']}})
 

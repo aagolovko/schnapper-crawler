@@ -74,11 +74,11 @@ export async function crawlForArticle(articleHrefs: string[]) {
 
             if (isDeleted && articleDb) {
                 log.info(`\x1B[31mExpired article ${articleHref}`)
-                await collections.articles!!.updateOne({_id: articleDb._id}, {$set: {unavailableOn: new Date()}})
+                await collections.articles!!.updateMany({_id: articleDb._id}, {$set: {unavailableOn: new Date()}})
                 expiredCounter++
             } else if (articleDb) {
                 log.info(`Article still available for ${articleHref}`)
-                await collections.articles!!.updateOne({_id: articleDb._id}, {$set: {lastChecked: new Date()}})
+                await collections.articles!!.updateMany({_id: articleDb._id}, {$set: {lastChecked: new Date()}})
             }
         }
 

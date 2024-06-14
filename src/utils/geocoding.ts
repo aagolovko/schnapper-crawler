@@ -57,7 +57,7 @@ export async function geocodeLocation(location: string) {
         }
 
         if (locationGeocoded && foundLocation && !foundLocation?.locationOsm) {
-            await collections.geocodingLocations.updateOne({_id: foundLocation._id}, {$set: {locationOsm: locationGeocoded}})
+            await collections.geocodingLocations.updateMany({_id: foundLocation._id}, {$set: {locationOsm: locationGeocoded}})
         }
     }
 

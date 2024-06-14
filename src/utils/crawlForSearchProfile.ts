@@ -1,4 +1,3 @@
-// For more information, see https://crawlee.dev/
 import {log, PlaywrightCrawler} from 'crawlee';
 import {PlaywrightCrawlerOptions} from "@crawlee/playwright/internals/playwright-crawler";
 import {searchPageNumber, sleep} from "./utils.ts";
@@ -11,9 +10,9 @@ import {DO_HEADLESS, INITIAL_SEARCH_PAGE, PAUSE_MS, WAIT_FOR_SELECTOR} from "../
 import {parse} from "node-html-parser";
 import {collections} from "../services/database.service.ts";
 
-const updateOrInsert = async (found: any, object: any, updatedFields: any) => {
+const updateOrInsertSearchRequest = async (found: any, object: any, updatedFields: any) => {
     if (found) {
-        await collections.searchRequests!!.updateOne({_id: found._id}, {$set: updatedFields})
+        await collections.searchRequests!!.updateMany({_id: found._id}, {$set: updatedFields})
     } else {
         await collections.searchRequests!!.insertOne({...object, ...updatedFields})
     }
@@ -123,7 +122,7 @@ export async function crawlForSearchProfile(searchPageHandler: (searchKeyword: s
                 //         metaInfoHandler(Number(summary[0]), Number(summary[1]), Number(summary[2]))
                 //     }
                 const foundSearchRequest = await collections.searchRequests!!.findOne(searchRequest);
-                await updateOrInsert(foundSearchRequest, searchRequest, {articlesFound: 0 /*TODO*/, lastSearch: new Date()})
+                await updateOrInsertSearchRequest(foundSearchRequest, searchRequest, {articlesFound: 0 /*TODO*/, lastSearch: new Date()})
 
             }
 

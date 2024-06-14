@@ -21,14 +21,17 @@ const startDate = new Date()
 log.info(`Start: ${startDate.toLocaleString()}`);
 
 
-await (collections.articles!!.updateMany({ locationGeocoded: {} }, {$set: {locationGeocoded: null}}))
+await (collections.articles!!.updateMany({locationGeocoded: {}}, {$set: {locationGeocoded: null}}))
 
 function handleArticle(searchKeyword: string, articleDb: Article | null, articleWeb: Article) {
 
     if (articleWeb.priceEur && articleWeb.priceEur > 10000) {
         // avoid crawling for buildings etc.
         log.info(`Skipping article href ${articleWeb.href}, price is > 10k eur`)
-    } else if (articleDb) {
+        return
+    }
+
+    if (articleDb) {
         if (!articleWeb.searchKeywords) {
             articleWeb.searchKeywords = []
         }
@@ -38,16 +41,31 @@ function handleArticle(searchKeyword: string, articleDb: Article | null, article
         }
 
         try {
-            collections.articles?.updateOne({_id: articleDb._id}, {$set: {...articleDb, ...articleWeb}})
-            log.debug(`Updated article (keywords), href ${articleWeb.href}, ${articleWeb.location}`)
+            collections.articles?.updateMany({href: articleDb.href}, {
+                $set: {
+                    lastChecked: new Date(),
+                    ...articleWeb,
+                    ...articleDb,
+                }
+            }).then(
+                (it) => {
+                    log.debug(`Updated article (keywords), href ${articleWeb.href}, ${articleWeb.location}, ack ${it.acknowledged}`)
+                }
+            );
         } catch (error) {
             log.error(`Failed ${error}`)
         }
     } else {
         const locationGeocoded = geocodeLocation(articleWeb.location)
         try {
-            collections.articles?.insertOne({...articleWeb, locationGeocoded, searchKeywords: [searchKeyword]})
-            log.info(`Inserted article, href https://ebay-kleinanzeigen.de${articleWeb.href}, ${articleWeb.location}, (${articleWeb.price})`)
+            collections.articles?.insertOne({
+                ...articleWeb,
+                locationGeocoded,
+                lastChecked: new Date(),
+                searchKeywords: [searchKeyword]
+            }).then( () => {
+                log.info(`Inserted article, href https://ebay-kleinanzeigen.de${articleWeb.href}, ${articleWeb.location}, (${articleWeb.price})`)
+            })
         } catch (error) {
             log.error(`Failed ${error}`)
         }
@@ -113,16 +131,33 @@ const searchPageHandler = async function (searchKeyword: string, content: string
 
     log.info(`Articles found on the page ${spHref}: ${articles.length}`)
     for (const article of articles) {
-
         const articleDb = await collections.articles!!.findOne({href: article.href})
         handleArticle(searchKeyword, articleDb, article);
+    }
+
+    const searchRequest = await collections.searchRequests!!.findOne({keyword: searchKeyword});
+
+    if (searchRequest?.lastSearch) {
+        const articlesByKeyword = await collections.articles!!.find(
+            {
+                lastSearch: {
+                    $exists: true,
+                    $lt: searchRequest.lastSearch
+                },
+                searchKeywords: {
+                    $in: [searchKeyword]
+                }
+            }).toArray()
+        for (const article of articlesByKeyword) {
+            console.log(`DELETE: ${article.href}`);
+        }
     }
 }
 
 
 let numOfSearchRequests = (await searchRequestsToCrawl()).length
 let retries = 1
-while (numOfSearchRequests > 0 ){
+while (numOfSearchRequests > 0) {
     log.info(`********************************************************************************`)
     log.info(`>>>> Try number ${retries}, search requests left: ${numOfSearchRequests} <<<<<`)
     log.info(`********************************************************************************`)
@@ -142,7 +177,7 @@ log.info(``)
 const endDate = new Date()
 log.info(``)
 log.info(`End: ${endDate.toLocaleString()}`);
-const diffInMinutes = (endDate.getTime() - startDate.getTime())/(1000*60)
+const diffInMinutes = (endDate.getTime() - startDate.getTime()) / (1000 * 60)
 log.info(`Duration (minutes): ${diffInMinutes}`)
 
 await client.close(true)

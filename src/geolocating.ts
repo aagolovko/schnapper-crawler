@@ -5,85 +5,94 @@ import {batchGeocodeLocations} from "./utils/geocoding.ts";
 
 const client = await connectToDatabase()
 
-await collections.geocodingLocations!!.updateMany({locationGeocoded: {}}, {$set: {locationGeocoded: null}} )
-
-const articlesWithoutGeolocation: Article[] = await (collections.articles!!.find(
-    {locationGeocoded: null}
-)).toArray();
-
 const startDate = new Date()
 
-const unknownGeolocationsPrep: string[] = articlesWithoutGeolocation
+// set locations to null, where locationGeocoded is set to empty object
+await collections.geocodingLocations!!.updateMany({locationGeocoded: {}}, {$set: {locationGeocoded: null}} )
+
+// find articles, for which not location is known
+const articlesWithoutGeocoding: Article[] = await (collections.articles!!.find({locationGeocoded: null})).toArray();
+
+const unknownLocations: string[] = articlesWithoutGeocoding
     .map(a => a.location)
     .filter((value, index, array) => value && array.indexOf(value) === index)
     .filter((value) => value !== undefined)
 
-const unknownGeolocations: string[] = []
-for (const loc of unknownGeolocationsPrep) {
-    const x = await collections.geocodingLocations!!.findOne({
-        locationString: loc
-    })
-
-    if (x?.locationOsm == null) {
-        unknownGeolocations.push(loc)
+const unknownGeolocationsKnown: string[] = []
+for (const articleLocationString of unknownLocations) {
+    const locationGeocoded = await collections.geocodingLocations!!.findOne({locationString: articleLocationString})
+    if (locationGeocoded?.locationOsm == null) {
+        unknownGeolocationsKnown.push(articleLocationString)
     }
-
 }
 
+// LIMIT BECAUSE OF API LIMIT
+const unknownGeolocationsRequested: string[] = unknownGeolocationsKnown.slice(0, 20)
+
+
 log.info(``)
-log.info(``)
-log.info(`Going to geocode locations for ${articlesWithoutGeolocation.length} articles`)
-log.info(`Going to geocode for ${unknownGeolocations.length} unique locations`)
+log.info(`Going to geocode locations for ${articlesWithoutGeocoding.length} articles`)
+log.info(`Going to geocode for ${unknownGeolocationsRequested.length} unique locations`)
 log.info(`Start: ${startDate.toLocaleString()}`);
-log.info(``)
-log.info(``)
 
-// for (const loc of unknownGeolocations) {
-//     await collections.geocodingLocations.deleteMany({locationString: loc});
-// }
+const geocoded = unknownGeolocationsRequested.length > 0 ? await batchGeocodeLocations(unknownGeolocationsRequested) : []
 
-if (unknownGeolocations && unknownGeolocations.length > 0) {
-    const geocoded = await batchGeocodeLocations(unknownGeolocations)
-    for (const locIndex in unknownGeolocations) {
-        const existingLocGeocoding = await collections.geocodingLocations!!.findOne({locationString: unknownGeolocations[locIndex]});
-        const resolvedLocGeocoding = geocoded[locIndex].error ? null : geocoded[locIndex].value.shift()
-        if (!existingLocGeocoding && resolvedLocGeocoding) {
-            log.info(`New location ${unknownGeolocations[locIndex]}`)
-            await collections.geocodingLocations!!.insertOne({
-                locationString: unknownGeolocations[locIndex],
-                locationOsm: resolvedLocGeocoding
-            })
+const failedLocations = new Map<string, string>();
+for (const responseIndex in unknownGeolocationsRequested) {
+    let geocodingRequest = unknownGeolocationsRequested[responseIndex];
+    const geocodingResponse = geocoded[responseIndex]?.value?.shift()
+
+    if (!geocodingResponse) {
+        log.warning(`Failed geocoding for location "${geocodingRequest}", retrying with "xxxxx Germany"`)
+        const match = geocodingRequest.match(/\d+/)
+        if (match) {
+            failedLocations.set(geocodingRequest, `${match[0]} Germany`)
         }
-
-        if (!resolvedLocGeocoding) {
-            log.warning(`Failed geocoding for location "${unknownGeolocations[locIndex]}" with ${geocoded[locIndex].error}`)
-        }
+    } else {
+        await collections.geocodingLocations!!.insertOne({
+            locationString: geocodingRequest,
+            locationOsm: geocodingResponse
+        })
     }
 }
 
-for (const index in articlesWithoutGeolocation) {
-    let locationStr = articlesWithoutGeolocation[index].location;
-    let articleHref = articlesWithoutGeolocation[index].href;
-    let articleId = articlesWithoutGeolocation[index]._id;
+const sortedKeys = Array.from(failedLocations.keys()).sort();
+const unknownGeolocationsRetried = sortedKeys.map( key => failedLocations.get(key)!!)
+const geocodedRetry = unknownGeolocationsRetried.length > 0 ? await batchGeocodeLocations(unknownGeolocationsRetried) : []
+for (const responseIndex in unknownGeolocationsRetried) {
+    let geocodingRequest = unknownGeolocationsRetried[responseIndex];
+    const geocodingResponse = geocodedRetry[responseIndex]?.value?.shift()
 
-    const locationSplitted = locationStr.split('-')
-    locationStr = (locationSplitted.length > 0) ? locationSplitted[0].trim() : locationStr
+    if (!geocodingResponse) {
+        log.warning(`Secondly failed geocoding for location "${geocodingRequest}" / "${sortedKeys[responseIndex]}"`)
+    } else {
+        await collections.geocodingLocations!!.insertOne({
+            locationString: sortedKeys[responseIndex],
+            locationOsm: geocodingResponse
+        })
+    }
+}
+
+
+for (const articlesIndex in articlesWithoutGeocoding) {
+    let locationStr = articlesWithoutGeocoding[articlesIndex].location;
+    let articleHref = articlesWithoutGeocoding[articlesIndex].href;
+    let articleId = articlesWithoutGeocoding[articlesIndex]._id;
 
     const existingLocGeocoding = await collections.geocodingLocations!!.findOne({locationString: locationStr});
-    if (existingLocGeocoding && !articlesWithoutGeolocation[index].locationGeocoded) {
+    if (existingLocGeocoding && !articlesWithoutGeocoding[articlesIndex].locationGeocoded) {
         log.debug(`Update article ${articleHref} with "${locationStr}"`)
         await collections.articles?.updateOne({_id: articleId}, {$set: {locationGeocoded: existingLocGeocoding.locationOsm}})
     }
 }
 
 const endDate = new Date()
-log.info(``)
 log.info(`End: ${endDate.toLocaleString()}`);
+log.info(``)
 const diffInMinutes = (endDate.getTime() - startDate.getTime())/(1000*60)
 log.info(`Duration (minutes): ${diffInMinutes}`)
 
 log.info(``)
 log.info(`>>> DONE <<<<`)
-log.info(``)
 
 await client.close()

@@ -6,7 +6,7 @@
     "dependencies": {
         "apify": "^3.1.7",
         "crawlee": "^3.4.0",
-        "dotenv": "^16.3.1",
+        "dotenv-flow": "^4.1.0",
         "geojson": "^0.5.0",
         "mongodb": "^5.6.0",
         "node-fetch": "^3.3.2",
@@ -25,12 +25,11 @@
         "typescript": "^5.0.0"
     },
     "scripts": {
-        "start": "npm run start:dev",
         "start:prod": "node dist/crawling.js",
-        "start:dev:crawl": "ts-node-esm -T src/crawling.ts; ts-node-esm -T src/geolocating.ts",
+        "start:dev": "NODE_ENV=dev ts-node-esm -T src/crawling.ts; NODE_ENV=dev ts-node-esm -T src/geolocating.ts",
+        "start:prod": "NODE_ENV=prod ts-node-esm -T src/crawling.ts; NODE_ENV=prod ts-node-esm -T src/geolocating.ts",
         "start:dev:cleaning": "ts-node-esm -T src/cleaning.ts",
-        "start:dev:geolocating": "ts-node-esm -T src/geolocating.ts",
-        "startsp:dev": "ts-node-esm -T src/utils/parseSearchPage.ts",
+        "start:dev:geolocating": "NODE_ENV=dev ts-node-esm -T src/geolocating.ts",
         "build": "tsc",
         "test": "echo \"Error: oops, the actor has no tests yet, sad!\" && exit 1"
     },

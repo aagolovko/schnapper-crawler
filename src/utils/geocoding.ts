@@ -66,12 +66,6 @@ export async function geocodeLocation(location: string) {
 
 
 export async function batchGeocodeLocations(locations: string[]) {
-
-    const locationsCleaned = locations.map( loc => {
-        const locationSplitted = loc.split('-')
-        let locationStr = (locationSplitted.length > 0) ? locationSplitted[0].trim() : loc
-        return locationStr
-    })
-
-    return await geocoder.batchGeocode(locationsCleaned)
+    log.info(`Making reques to OSM Geocoding Service with ${locations.length} locations`)
+    return await geocoder.batchGeocode(locations);
 }

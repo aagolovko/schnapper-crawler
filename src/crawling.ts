@@ -56,11 +56,11 @@ function handleArticle(searchKeyword: string, articleDb: Article | null, article
             log.error(`Failed ${error}`)
         }
     } else {
-        const locationGeocoded = geocodeLocation(articleWeb.location)
+        // const locationGeocoded = geocodeLocation(articleWeb.location)
         try {
             collections.articles?.insertOne({
                 ...articleWeb,
-                locationGeocoded,
+                //locationGeocoded,
                 lastChecked: new Date(),
                 searchKeywords: [searchKeyword]
             }).then( () => {

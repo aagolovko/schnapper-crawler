@@ -221,8 +221,8 @@ async function inputSearchDistance(page: Page, searchDistance: string) {
         await page.keyboard.press('ArrowDown')  // +10km
         await page.keyboard.press('ArrowDown') // +20km
         await page.keyboard.press('ArrowDown') // +30km
-        //await page.keyboard.press('ArrowDown') // +50km
-        // await page.keyboard.press('ArrowDown') // +100km
+        await page.keyboard.press('ArrowDown') // +50km
+        await page.keyboard.press('ArrowDown') // +100km
         await page.keyboard.press('Enter')
     } catch (e) {
         log.error(`inputSearchDistance ${e}`)

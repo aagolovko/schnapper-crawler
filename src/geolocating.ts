@@ -18,21 +18,21 @@ const unknownLocations: string[] = articlesWithoutGeocoding
     .filter((value, index, array) => value && array.indexOf(value) === index)
     .filter((value) => value !== undefined)
 
-const unknownGeolocationsKnown: string[] = []
+const uncachedGeolocations: string[] = []
 for (const articleLocationString of unknownLocations) {
     const locationGeocoded = await collections.geocodingLocations!!.findOne({locationString: articleLocationString})
     if (locationGeocoded?.locationOsm == null) {
-        unknownGeolocationsKnown.push(articleLocationString)
+        uncachedGeolocations.push(articleLocationString)
     }
 }
 
 // LIMIT BECAUSE OF API LIMIT
-const unknownGeolocationsRequested: string[] = unknownGeolocationsKnown.slice(0, 20)
+const unknownGeolocationsRequested: string[] = uncachedGeolocations.slice(0, 30)
 
 
 log.info(``)
 log.info(`Going to geocode locations for ${articlesWithoutGeocoding.length} articles`)
-log.info(`Going to geocode for ${unknownGeolocationsRequested.length} unique locations`)
+log.info(`Going to geocode for ${unknownGeolocationsRequested.length} unique and unknown yet locations`)
 log.info(`Start: ${startDate.toLocaleString()}`);
 
 const geocoded = unknownGeolocationsRequested.length > 0 ? await batchGeocodeLocations(unknownGeolocationsRequested) : []

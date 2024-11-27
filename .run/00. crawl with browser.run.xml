@@ -1,13 +1,13 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="02. geolocating" type="js.build_tools.npm">
+  <configuration default="false" name="00. crawl with browser" type="js.build_tools.npm">
     <package-json value="$PROJECT_DIR$/package.json" />
     <command value="run" />
     <scripts>
-      <script value="start:dev:geolocating" />
+      <script value="start:dev" />
     </scripts>
     <node-interpreter value="$USER_HOME$/.nvm/versions/node/v18.17.1/bin/node" />
     <envs>
-      <env name="NODE_EXTRA_CA_CERTS" value="/System/Volumes/Data/opt/homebrew/etc/openssl@3/cert.pem" />
+      <env name="NODE_EXTRA_CA_CERTS" value="/usr/local/etc/openssl@3/cert.pem" />
     </envs>
     <method v="2" />
   </configuration>

@@ -25,10 +25,8 @@
         "typescript": "^5.0.0"
     },
     "scripts": {
-        "start:prod": "node dist/crawling.js",
-        "start:dev": "NODE_ENV=dev ts-node-esm -T src/crawling.ts; NODE_ENV=dev ts-node-esm -T src/geolocating.ts",
-        "start:prod": "NODE_ENV=prod ts-node-esm -T src/crawling.ts; NODE_ENV=prod ts-node-esm -T src/geolocating.ts",
-        "start:dev:cleaning": "ts-node-esm -T src/cleaning.ts",
+        "start:local": "NODE_ENV=local ts-node-esm -T src/crawling.ts",
+        "start:prod": "NODE_ENV=prod ts-node-esm -T src/crawling.ts",
         "start:dev:geolocating": "NODE_ENV=dev ts-node-esm -T src/geolocating.ts",
         "build": "tsc",
         "test": "echo \"Error: oops, the actor has no tests yet, sad!\" && exit 1"

@@ -6,6 +6,7 @@ import {SearchProfile} from "../models/searchProfile";
 import {log} from "crawlee";
 import {SearchRequest} from "../models/searchRequest";
 import {GeocodingLocation} from "../models/geocodingLocation";
+import {environment} from "../environments/environment.prod.ts";
 
 export const collections: {
     articles?: mongoDB.Collection<Article>,
@@ -15,22 +16,22 @@ export const collections: {
 } = {};
 
 export async function connectToDatabase(): Promise<MongoClient> {
-    // Pulls in the .env.dev file so it can be accessed from process.env. No path as .env.dev is in root, the default location
+    // Pulls in the .env.local file so it can be accessed from process.env. No path as .env.local is in root, the default location
     dotenv.config();
 
-    // Create a new MongoDB client with the connection string from .env.dev
-    const client = new mongoDB.MongoClient(process.env.MONGODB_URL!!);
+    // Create a new MongoDB client with the connection string from .env.local
+    const client = new mongoDB.MongoClient(environment.mongodbConnectionString);
 
     // Connect to the cluster
     await client.connect();
 
-    // Connect to the database with the name specified in .env.dev
+    // Connect to the database with the name specified in .env.local
     const db = client.db(process.env.DB_NAME);
 
     // // Apply schema validation to the collection
     await applySchemaValidation(db);
 
-    // Connect to the collection with the specific name from .env.dev, found in the database previously specified
+    // Connect to the collection with the specific name from .env.local, found in the database previously specified
     const articlesCollection = db.collection<Article>(process.env.ARTICLES_COLLECTION_NAME!!);
     const searchProfilesCollection = db.collection<SearchProfile>('searchProfiles');
     const searchRequestsCollection = db.collection<SearchRequest>('searchRequests');

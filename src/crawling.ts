@@ -3,7 +3,7 @@ import {log} from "crawlee";
 import {Article} from "./models/article";
 
 import {SearchRequest} from "./models/searchRequest";
-import {geocodeLocation} from "./utils/geocoding.ts";
+
 import {
     DEBUG_SEARCH_KEYWORDS,
     FORCE_UPDATE,

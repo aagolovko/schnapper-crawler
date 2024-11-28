@@ -6,7 +6,7 @@ import {RequestQueue} from "apify";
 import {v4 as uuidv4} from 'uuid';
 import {searchRequestsToCrawl} from "../crawling.ts";
 import {Page} from "playwright";
-import {DO_HEADLESS, INITIAL_SEARCH_PAGE, PAUSE_MS, WAIT_FOR_SELECTOR} from "../config.ts";
+import {MAX_SEARCH_PAGES_FOR_KEYWORD, DO_HEADLESS, INITIAL_SEARCH_PAGE, PAUSE_MS, WAIT_FOR_SELECTOR} from "../config.ts";
 import {parse} from "node-html-parser";
 import {collections} from "../services/database.service.ts";
 
@@ -16,30 +16,6 @@ const updateOrInsertSearchRequest = async (found: any, object: any, updatedField
     } else {
         await collections.searchRequests!!.insertOne({...object, ...updatedFields})
     }
-}
-
-async function fetchNextPagesUrls(page: Page) {
-    try {
-        let selector = '.pagination-pages a'
-
-        // const aElements = root.querySelectorAll(selector)
-        // const hrefs = aElements.map( it => it.getAttribute("href"))
-
-        const hrefs = await page.evaluate((selector: string) => {
-            let elements = Array.from(document.querySelectorAll(selector));
-            let links = elements.map(element => {
-                return element.getAttribute('href')
-            })
-            return links;
-        }, selector);
-
-        return hrefs.map(it => `https://www.kleinanzeigen.de${it}`)
-    } catch (e) {
-        log.error(`during fetch of next pages ${e}`)
-    }
-
-    return []
-
 }
 
 async function inputSearchRequest(searchRequest: SearchRequest, page: Page) {
@@ -98,6 +74,9 @@ export async function crawlForSearchProfile(searchPageHandler: (searchKeyword: s
 
         const spNumber = searchPageNumber(page.url())
 
+
+
+
         if (spNumber > 0) {
             log.info(`Parsing one of the next search pages ${page.url()}`)
             log.info(``)
@@ -124,17 +103,35 @@ export async function crawlForSearchProfile(searchPageHandler: (searchKeyword: s
                 const foundSearchRequest = await collections.searchRequests!!.findOne(searchRequest);
                 await updateOrInsertSearchRequest(foundSearchRequest, searchRequest, {articlesFound: 0 /*TODO*/, lastSearch: new Date()})
 
+                // let nextPages: string[] = []
+                // try {
+                //     const content = await page.content()
+                //     const root = parse(content)
+                //     let selector = '.pagination-pages a'
+                //     let nextPageElements = root.querySelectorAll(selector);
+                //
+                //     for (const el of nextPageElements) {
+                //         let href = el.getAttribute('href');
+                //         if (href) {
+                //             nextPages.push(`https://www.kleinanzeigen.de${href}`)
+                //         }
+                //     }
+                // } catch (e) {
+                //     log.error(`during fetch of next pages ${e}`)
+                // }
+                //
+                // const nextPagesTotal = nextPages.length
+                // const maxNextPagesAllowed = MAX_SEARCH_PAGES_FOR_KEYWORD - 1
+                // const maxNextPagesToCrawl = Math.min(maxNextPagesAllowed, nextPagesTotal)
+                //
+                // if (maxNextPagesToCrawl > 0) {
+                //     const urlsToCrawl = nextPages.slice(0, maxNextPagesToCrawl)
+                //     log.info(`TODO: crawl ${maxNextPagesToCrawl} from total ${nextPagesTotal} for ${searchRequest.keyword}`)
+                //     // enqueueLinks({urls: urlsToCrawl});
+                // }
             }
 
-            // const urls = await fetchNextPagesUrls(page)
-            // log.info(`found ${urls.length} next pages `)
-            // urls.forEach(it => {
-            //     log.info(`>> ${it}`)
-            // })
-            // if (urls.length > 0) {
-            //     // Find a link to the next page and enqueue it if it exists.
-            //     enqueueLinks({urls});
-            // }
+
         }
     }
 
@@ -234,7 +231,7 @@ async function submitSearch(page: Page) {
     try {
         // submit button
         let selector = '//button[@id="site-search-submit"]'
-        let element = await page.waitForSelector(selector);
+        let element = await page.waitForSelector(selector, {timeout: WAIT_FOR_SELECTOR});
         await element.click()
     } catch (e) {
         log.error(`submitSearch ${e}`)

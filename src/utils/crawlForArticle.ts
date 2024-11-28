@@ -7,6 +7,8 @@ import {parse} from "node-html-parser";
 import {collections} from "../services/database.service.ts";
 import {DO_HEADLESS, MIN_TIME_BETWEEN_SEARCHES_MINUTES} from "../config.ts";
 
+log.setLevel(log.LEVELS.ERROR);
+
 export async function crawlForArticle(articleHrefs: string[]) {
     let uuid = uuidv4()
     const requestQueue = await RequestQueue.open(`rq-${uuid}`)
@@ -31,11 +33,6 @@ export async function crawlForArticle(articleHrefs: string[]) {
 
         let expiredCounter = 0
         for (const articleHref of articleHrefs) {
-
-            // if (!articleHref.includes("/s-anzeige/wamsler-kaminofen/2587538733-87-6354")) {
-            //     continue
-            // }
-
             const hrefShort = articleHref.replace('https://www.kleinanzeigen.de','')
                 .replace('https://ebay-kleinanzeigen.de','')
                 .replace('//','/')

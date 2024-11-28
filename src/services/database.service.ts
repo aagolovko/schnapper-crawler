@@ -6,7 +6,7 @@ import {SearchProfile} from "../models/searchProfile";
 import {log} from "crawlee";
 import {SearchRequest} from "../models/searchRequest";
 import {GeocodingLocation} from "../models/geocodingLocation";
-import {environment} from "../environments/environment.prod.ts";
+import {environment} from "../environments/environment.ts";
 
 export const collections: {
     articles?: mongoDB.Collection<Article>,
@@ -16,7 +16,7 @@ export const collections: {
 } = {};
 
 export async function connectToDatabase(): Promise<MongoClient> {
-    // Pulls in the .env.local file so it can be accessed from process.env. No path as .env.local is in root, the default location
+    // Pulls in the .env.local file so that it can be accessed from process.env. No path as .env.local is in root, the default location
     dotenv.config();
 
     // Create a new MongoDB client with the connection string from .env.local

@@ -6,7 +6,7 @@ import {SearchProfile} from "../models/searchProfile";
 import {log} from "crawlee";
 import {SearchRequest} from "../models/searchRequest";
 import {GeocodingLocation} from "../models/geocodingLocation";
-import {environment} from "../environments/environment.ts";
+import {environment} from "../environments/environment.prod.ts";
 
 export const collections: {
     articles?: mongoDB.Collection<Article>,

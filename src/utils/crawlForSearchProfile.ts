@@ -74,9 +74,6 @@ export async function crawlForSearchProfile(searchPageHandler: (searchKeyword: s
 
         const spNumber = searchPageNumber(page.url())
 
-
-
-
         if (spNumber > 0) {
             log.info(`Parsing one of the next search pages ${page.url()}`)
             log.info(``)
@@ -103,32 +100,32 @@ export async function crawlForSearchProfile(searchPageHandler: (searchKeyword: s
                 const foundSearchRequest = await collections.searchRequests!!.findOne(searchRequest);
                 await updateOrInsertSearchRequest(foundSearchRequest, searchRequest, {articlesFound: 0 /*TODO*/, lastSearch: new Date()})
 
-                // let nextPages: string[] = []
-                // try {
-                //     const content = await page.content()
-                //     const root = parse(content)
-                //     let selector = '.pagination-pages a'
-                //     let nextPageElements = root.querySelectorAll(selector);
-                //
-                //     for (const el of nextPageElements) {
-                //         let href = el.getAttribute('href');
-                //         if (href) {
-                //             nextPages.push(`https://www.kleinanzeigen.de${href}`)
-                //         }
-                //     }
-                // } catch (e) {
-                //     log.error(`during fetch of next pages ${e}`)
-                // }
-                //
-                // const nextPagesTotal = nextPages.length
-                // const maxNextPagesAllowed = MAX_SEARCH_PAGES_FOR_KEYWORD - 1
-                // const maxNextPagesToCrawl = Math.min(maxNextPagesAllowed, nextPagesTotal)
-                //
-                // if (maxNextPagesToCrawl > 0) {
-                //     const urlsToCrawl = nextPages.slice(0, maxNextPagesToCrawl)
-                //     log.info(`TODO: crawl ${maxNextPagesToCrawl} from total ${nextPagesTotal} for ${searchRequest.keyword}`)
-                //     // enqueueLinks({urls: urlsToCrawl});
-                // }
+                let nextPages: string[] = []
+                try {
+                    const content = await page.content()
+                    const root = parse(content)
+                    let selector = '.pagination-pages a'
+                    let nextPageElements = root.querySelectorAll(selector);
+
+                    for (const el of nextPageElements) {
+                        let href = el.getAttribute('href');
+                        if (href) {
+                            nextPages.push(`https://www.kleinanzeigen.de${href}`)
+                        }
+                    }
+                } catch (e) {
+                    log.error(`during fetch of next pages ${e}`)
+                }
+
+                const nextPagesTotal = nextPages.length
+                const maxNextPagesAllowed = MAX_SEARCH_PAGES_FOR_KEYWORD - 1
+                const maxNextPagesToCrawl = Math.min(maxNextPagesAllowed, nextPagesTotal)
+
+                if (maxNextPagesToCrawl > 0) {
+                    const urlsToCrawl = nextPages.slice(0, maxNextPagesToCrawl)
+                    log.info(`TODO: crawl ${maxNextPagesToCrawl} from total ${nextPagesTotal} for ${searchRequest.keyword}`)
+                    // enqueueLinks({urls: urlsToCrawl});
+                }
             }
 
 

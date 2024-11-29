@@ -1,4 +1,4 @@
 export const environment = {
   production: true,
-  mongodbConnectionString: 'mongodb://localhost:27017/'
+  mongodbConnectionString: 'mongodb://127.0.0.1:27017/'
 };

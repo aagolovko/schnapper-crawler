@@ -1,6 +1,6 @@
 export const DO_HEADLESS = false
 // minimal pause between single search requests
-export const MIN_TIME_BETWEEN_SEARCHES_MINUTES = 0 // 360
+export const MIN_TIME_BETWEEN_SEARCHES_MINUTES = 360 // 360
 /* use next variables for debugging. The array containes keywords, which are
 * only allowed to be used in searches.*/
 export const FORCE_UPDATE = false
@@ -10,7 +10,7 @@ export const DEBUG_SEARCH_KEYWORDS: string[] = [] // ['balken']
 export const INITIAL_SEARCH_PAGE = 'https://www.kleinanzeigen.de/'
 
 
-export const MAX_SEARCH_PAGES_FOR_KEYWORD = 3
+export const MAX_SEARCH_PAGES_FOR_KEYWORD = 1
 
 
 

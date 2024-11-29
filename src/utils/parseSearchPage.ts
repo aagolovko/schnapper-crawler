@@ -25,7 +25,10 @@ export function parseSearchPage(searchPagePath: string): Article[] {
     const articlesJson: Article[] = []
 
     for (const el of articles) {
-        const href = el.querySelector('.text-module-begin a')?.getAttribute('href')
+        let href = el.querySelector('.text-module-begin a')?.getAttribute('href')
+        if (!href) {
+            href = el.querySelector('.text-module-begin span')?.getAttribute('data-url')
+        }
         log.debug(`Handling article with href ${href}`);
 
         const hrefImageTry1 = el.querySelector('img')?.getAttribute('src')?.replace(/ 2x/gi, '').trim()
@@ -73,9 +76,11 @@ export function parseSearchPage(searchPagePath: string): Article[] {
         const isShipping = isShippingStr != undefined ? true : false
 
 
-        const title = el.querySelector('.text-module-begin a')?.innerText
-
-        if (href && location) {
+        let title = el.querySelector('.text-module-begin a')?.innerText
+        if (!title) {
+            title = el.querySelector('.text-module-begin span')?.innerText
+        }
+        if (href && location && title) {
             articlesJson.push({
                 href,
                 hrefImage,
@@ -89,7 +94,7 @@ export function parseSearchPage(searchPagePath: string): Article[] {
                 createdOn: createdOnDate
             })
         } else {
-            log.warning(`Either href or location not set for title '${title}'`);
+            log.warning(`Either href/location/title: ${href}/${location}/${title}`);
         }
     }
 

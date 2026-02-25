@@ -123,7 +123,8 @@ export async function searchRequestsToCrawl() {
 
 const searchPageHandler = async function (searchKeyword: string, content: string, spHref: string) {
     const splitted = spHref.split('/')
-    const fileName = splitted.length == 0 ? 'unknown' : splitted.slice(3).join('-').replaceAll(':', '-')
+
+    const fileName = splitted.length <= 4 ? searchKeyword : splitted.slice(3).join('-').replaceAll(':', '-');
     let searchPageFile = `search-pages/${fileName}.html`;
     writeFileSync(searchPageFile, content);
 

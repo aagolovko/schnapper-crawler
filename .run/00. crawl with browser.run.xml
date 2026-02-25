@@ -7,7 +7,7 @@
     </scripts>
     <node-interpreter value="$USER_HOME$/.nvm/versions/node/v18.17.1/bin/node" />
     <envs>
-      <env name="NODE_EXTRA_CA_CERTS" value="/usr/local/etc/openssl@3/cert.pem" />
+      <env name="NODE_EXTRA_CA_CERTS" value="&quot;&quot;" />
     </envs>
     <method v="2" />
   </configuration>

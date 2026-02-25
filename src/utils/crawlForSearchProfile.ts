@@ -78,7 +78,8 @@ export async function crawlForSearchProfile(searchPageHandler: (searchKeyword: s
             log.info(`Parsing one of the next search pages ${page.url()}`)
             log.info(``)
 
-            let selector = '//input[@id="site-search-query"]'
+            // let selector = '//input[@id="site-search-query"]'
+            let selector = '//input[@id="keywords"]'
             let element = await page.waitForSelector(selector);
             const content = await page.content()
             searchPageHandler(element.value, content, page.url())
@@ -105,10 +106,12 @@ export async function crawlForSearchProfile(searchPageHandler: (searchKeyword: s
                     const content = await page.content()
                     const root = parse(content)
                     let selector = '.pagination-pages a'
+                    // let selector = 'span'
                     let nextPageElements = root.querySelectorAll(selector);
 
                     for (const el of nextPageElements) {
                         let href = el.getAttribute('href');
+                        // let href = el.getAttribute('data-url');
                         if (href) {
                             nextPages.push(`https://www.kleinanzeigen.de${href}`)
                         }
@@ -124,7 +127,7 @@ export async function crawlForSearchProfile(searchPageHandler: (searchKeyword: s
                 if (maxNextPagesToCrawl > 0) {
                     const urlsToCrawl = nextPages.slice(0, maxNextPagesToCrawl)
                     log.info(`TODO: crawl ${maxNextPagesToCrawl} from total ${nextPagesTotal} for ${searchRequest.keyword}`)
-                    // enqueueLinks({urls: urlsToCrawl});
+                    enqueueLinks({urls: urlsToCrawl});
                 }
             }
 
@@ -140,7 +143,8 @@ export async function crawlForSearchProfile(searchPageHandler: (searchKeyword: s
 async function inpuSearchArea(page: Page, searchArea: string) {
     try {
         // search area, like "Hadern"
-        let selector = '//input[@id="site-search-area"]'
+        // let selector = '//input[@id="site-search-area"]'
+        let selector = '//input[@name="locationStr"]'
         let element = await page.waitForSelector(selector);
         await element.click({clickCount: 3})
         await element.type(searchArea)
@@ -152,7 +156,8 @@ async function inpuSearchArea(page: Page, searchArea: string) {
 async function inputSearchQuery(page: Page, keyword: string) {
     try {
         // input field for queries
-        let selector = '//input[@id="site-search-query"]'
+        // let selector = '//input[@id="site-search-query"]'
+        let selector = '//input[@name="keywords"]'
         let element = await page.waitForSelector(selector);
         await element.click({clickCount: 3})
         await element.type(keyword)
@@ -182,16 +187,17 @@ async function clickAcceptCookies(page: Page) {
 
     // >> close "accept cookies" only now, after text for search is entered
     let selector = '//button[@id="gdpr-banner-accept"]'
-    page.waitForSelector(selector, {timeout: WAIT_FOR_SELECTOR}).then((button) => {
+    page.waitForSelector(selector, {timeout: WAIT_FOR_SELECTOR}).then((button: { click: () => void; }) => {
         button.click()
-    }, (failure) => {
+    }, (failure: any) => {
         log.warning(`Failed to resolve 'cookies' banner, but it is not a problem: ${failure}`)
     })
 }
 
 async function clickCloseRegisterPopup(page: Page) {
     try {
-        let selector = '//a[@class="j-overlay-close overlay-close"]'
+        // let selector = '//a[@class="j-overlay-close overlay-close"]'
+        let selector = '//button[@aria-label="Willkommens-Popup Schließen"]'
         let element = await page.waitForSelector(selector, {timeout: WAIT_FOR_SELECTOR})
         await element.click()
     } catch (e) {
@@ -203,7 +209,9 @@ async function inputSearchDistance(page: Page, searchDistance: string) {
     log.debug(`Search distance (not used yet): ${searchDistance}`)
     try {
         // distance arround the area, like "+20km"
-        let selector = '//div[@id="site-search-distance"]'
+        // let selector = '//div[@id="site-search-distance"]'
+        // let selector = '//div[@aria-label="Radius auswählen"]'
+        let selector = '//button[@id="radius-dropdown-list-menu-button"]'
         let element = await page.waitForSelector(selector);
         await element.click()
 
@@ -213,10 +221,11 @@ async function inputSearchDistance(page: Page, searchDistance: string) {
         await page.keyboard.press('ArrowDown')
         await page.keyboard.press('ArrowDown')  // +5km
         await page.keyboard.press('ArrowDown')  // +10km
-        await page.keyboard.press('ArrowDown') // +20km
-        await page.keyboard.press('ArrowDown') // +30km
-        await page.keyboard.press('ArrowDown') // +50km
-        await page.keyboard.press('ArrowDown') // +100km
+        //await page.keyboard.press('ArrowDown') // +20km
+        //await page.keyboard.press('ArrowDown') // +30km
+        //await page.keyboard.press('ArrowDown') // +50km
+        //await page.keyboard.press('ArrowDown') // +100km
+
         await page.keyboard.press('Enter')
     } catch (e) {
         log.error(`inputSearchDistance ${e}`)
@@ -227,7 +236,8 @@ async function inputSearchDistance(page: Page, searchDistance: string) {
 async function submitSearch(page: Page) {
     try {
         // submit button
-        let selector = '//button[@id="site-search-submit"]'
+        let selector = '//button[.//text()[contains(., "Finden")]]'
+        //let selector = '//button[@id="site-search-submit"]'
         let element = await page.waitForSelector(selector, {timeout: WAIT_FOR_SELECTOR});
         await element.click()
     } catch (e) {

@@ -1,4 +1,39 @@
-# TODO: 
+# Intro
+This code crawl the kleinanzeigen web page for specific keywords like "regentonne" and  persists the results.
+
+# Technical implementation
+The selenium framework is used to crawl to make the behaviour of the crawler more human-like and to avoid blocking by the web page.
+The data fetched is persisted in a mongodb as JSON. Another component provide access to the 
+database over GraphQL which finally is visualized in a web application.
+
+# Algorithm
+The algorithm for crawling is as follows:
+- fetch the landing page of the kleinanzeigen.de
+- enter keyword/location/distance for search, submit search form
+- fetch items, fetch next results pages 
+- do the same for futher results pages
+- for each itme fetch details page, extract details, persist in database
+
+
+# Tools
+
+clean up npm caches:
+```
+npm config set fund false --location=global
+
+rm -rf node_modules package-lock.json
+npm cache clean --force
+npm install
+npx playwright install --with-deps
+```
+
+nvm updates to fix "EBADENGINE":
+```
+nvm install 20
+nvm use 20
+echo "20" > .nvmrc
+```
+
 
 
 # actually we should avoid this, but sometimes:

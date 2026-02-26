@@ -7,6 +7,7 @@ import {Article} from '../models/article';
 import * as fs from "fs";
 import {WAIT_FOR_SELECTOR} from "../config.ts";
 
+// TODO: do we need to save? xpath query directly in browser.
 export function parseSearchPage(searchPagePath: string): Article[] {
     const searchPageContent = fs.readFileSync(searchPagePath, 'utf8')
 
@@ -38,9 +39,9 @@ export function parseSearchPage(searchPagePath: string): Article[] {
             log.debug(`Failed to resolve hrefImage for ${href}`);
         }
 
-        const location = el.querySelector('div .aditem-main--top--left i')?.nextSibling.innerText?.replace(/\n/gi, ' ').replace(/\s+/gi, ' ').replace(/\(.*\)+/gi, ' ').trim()
+        const location = el.querySelector('div .aditem-main--top--left i')?.nextSibling?.innerText?.replace(/\n/gi, ' ').replace(/\s+/gi, ' ').replace(/\(.*\)+/gi, ' ').trim()
 
-        const createdOn = el.querySelector('div .aditem-main--top--right i')?.nextSibling.innerText?.replace(/\n/gi, ' ').replace(/\s+/gi, ' ').trim()
+        const createdOn = el.querySelector('.aditem-main--top--right i')?.nextSibling?.innerText?.replace(/\n/gi, ' ').replace(/\s+/gi, ' ').trim()
 
         if (!createdOn) {
             log.warning(`Failed to resolve "createdOn", href ${href}`);

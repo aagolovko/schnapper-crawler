@@ -1,6 +1,6 @@
-export const DO_HEADLESS = true
+export const DO_HEADLESS = false
 // minimal pause between single search requests
-export const MIN_TIME_BETWEEN_SEARCHES_MINUTES = 0 // 360
+export const MIN_TIME_BETWEEN_SEARCHES_MINUTES = 360 // 360
 /* use next variables for debugging. The array containes keywords, which are
 * only allowed to be used in searches.*/
 export const FORCE_UPDATE = false

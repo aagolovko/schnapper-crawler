@@ -49,91 +49,51 @@ const updateOrInsertSearchRequest = async (searchRequest: SearchRequest) => {
     }
 };
 
-async function doSearchRequest(landing: SearchPage, searchRequest: SearchRequest) {
-    log.info(`Enter UI search fields for keyword: ${searchRequest.keyword}`)
-    await landing.inputSearchQuery(searchRequest.keyword)
-
-    await sleep(PAUSE_MS)
-    await landing.inputSearchArea(searchRequest.searchArea)
-
-    await sleep(PAUSE_MS)
-    await landing.inputSearchDistance(searchRequest.searchDistance)
-
-    await sleep(PAUSE_MS * 2)
-    await landing.submitSearch();
-
-    await sleep(PAUSE_MS * 6)
-
-    return await landing.getContent();
+const plz2InternalID: { [key: string]: string } = {
+    "81375": "l6414"
 }
 
 export async function crawling() {
 
     const requestQueue = await RequestQueue.open(`rq-${uuidv4()}`)
 
-
     const searchRequests = await findSearchRequests();
+
+    const searchUrls = searchRequests.map(searchRequest => {
+        return {
+            url: `https://www.kleinanzeigen.de/s-${searchRequest.searchArea}/${searchRequest.keyword}/k0${plz2InternalID[searchRequest.searchArea]}r${searchRequest.searchDistance}`,
+            label: 'SEARCH_RESULTS',
+            userData: { searchRequest: searchRequest }
+        };
+    });
 
     log.info(`********************************************************************************`)
     log.info(`>>>> Search requests: ${searchRequests.length} <<<<<`)
     log.info(`********************************************************************************`)
 
 
-        const crawlerConfig = {
+    const crawlerConfig = {
         requestQueue,
         headless: DO_HEADLESS,
+        useSessionPool: false,
+        maxRequestsPerCrawl: 200,
+        minConcurrency: 1,
+        maxConcurrency: 1,
         requestHandler: browserPage
     } as PlaywrightCrawlerOptions;
 
     const crawler = new PlaywrightCrawler(crawlerConfig)
-    await crawler.run([INITIAL_SEARCH_PAGE])
+    await crawler.run(searchUrls)
     //await crawler.teardown()
 
     // @ts-ignore
     async function browserPage({enqueueLinks, page, request}) {
-        const isLandingPage = page.url() === INITIAL_SEARCH_PAGE
-        const isSearchResultsPage = request.label === 'SEARCH_RESULTS'
-        const isItemDetailsPage = false
-
         log.info(`Handling page: ${page.url()}`)
 
-        if (isLandingPage) {
-            // enter search request, submit, parse items
-        } else if (isSearchResultsPage) {
-            // only parse results
-            const landing = new SearchPage(page);
-            const searchRequest = request.userData?.searchRequest as SearchRequest;
-            const url = await landing.getUrl();
-
-            const searchPageFile = await cacheSearchResults(landing, searchRequest);
-
-            const articles: Article[] = parseSearchPage(searchPageFile);
-            log.info(`Articles found on the page ${url}: ${articles.length}`)
-
-            for (const article of articles) {
-                const articleDb = await collections.articles!!.findOne({href: article.href})
-                handleArticle(searchRequest.keyword, articleDb, article);
-            }
-
-            const nextPages: string[] = await landing.nextPages()
-
-            for (const url of nextPages) {
-                await requestQueue.addRequest({
-                    url,
-                    label: 'SEARCH_RESULTS',
-                    userData: {
-                        searchRequest,
-                    }
-                });
-            }
-            return
-        } else if (isItemDetailsPage) {
-            // parse item details page and update
-            // NOTE: we avoid it for now
-            return
-        }
+        await sleep(PAUSE_MS * 5)
 
         const landing = new SearchPage(page);
+
         // Helper to cache search result HTML to file and return URL and file path
         async function cacheSearchResults(landing: SearchPage, searchRequest: SearchRequest) {
             const url = await landing.getUrl();
@@ -146,46 +106,20 @@ export async function crawling() {
         }
         await page.once('load', () => {});
 
-        await sleep(PAUSE_MS)
-        await sleep(PAUSE_MS)
-        await landing.acceptCookies()
+        const searchRequest = request.userData?.searchRequest as SearchRequest;
+        const searchPageFile = await cacheSearchResults(landing, searchRequest);
+        const articles: Article[] = parseSearchPage(searchPageFile);
 
-        await sleep(PAUSE_MS)
-        await landing.closeWelcomePopup()
+        const url = await landing.getUrl();
+        log.info(`Articles found on the page ${url}: ${articles.length}`)
 
-        for (const searchRequest of searchRequests) {
-            const url = await landing.getUrl();
-            await doSearchRequest(landing, searchRequest);
-            const searchPageFile = await cacheSearchResults(landing, searchRequest);
-
-            const articles: Article[] = parseSearchPage(searchPageFile);
-            log.info(`Articles found on the page ${url}: ${articles.length}`)
-
-            for (const article of articles) {
-                const articleDb = await collections.articles!!.findOne({href: article.href})
-                handleArticle(searchRequest.keyword, articleDb, article);
-            }
-
-            //     const summary = root.querySelector('.breadcrump-summary')?.innerText?.match(/(\d+)/gm).slice(0, 3)
-            //     if (summary && summary.length == 3 && metaInfoHandler) {
-            //         metaInfoHandler(Number(summary[0]), Number(summary[1]), Number(summary[2]))
-            //     }
-
-            // Update or insert the search request and handle any cleanup
-            await updateOrInsertSearchRequest(searchRequest);
-
-            const nextPages: string[] = await landing.nextPages()
-
-            for (const url of nextPages) {
-                await requestQueue.addRequest({
-                    url,
-                    label: 'SEARCH_RESULTS',
-                    userData: {
-                        searchRequest,
-                    }
-                });
-            }
+        for (const article of articles) {
+            const articleDb = await collections.articles!!.findOne({href: article.href})
+            handleArticle(searchRequest.keyword, articleDb, article);
         }
+
+        // Update or insert the search request and handle any cleanup
+        await updateOrInsertSearchRequest(searchRequest);
     }
 }
 

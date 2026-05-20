@@ -1,5 +1,5 @@
 {
-    "name": "my-crawler",
+    "name": "schnapper-crawler",
     "version": "0.0.1",
     "type": "module",
     "description": "This is an example of a Crawlee project.",
@@ -30,8 +30,11 @@
         "start:prod": "NODE_ENV=prod ts-node-esm -T src/main.ts",
         "start:dev:geolocating": "NODE_ENV=dev ts-node-esm -T src/geolocating.ts",
         "build": "tsc",
-        "test": "echo \"Error: oops, the actor has no tests yet, sad!\" && exit 1"
+        "test": "tsc --noEmit"
     },
-    "author": "It's not you it's me",
+    "engines": {
+        "node": ">=20"
+    },
+    "author": "nobody",
     "license": "ISC"
 }

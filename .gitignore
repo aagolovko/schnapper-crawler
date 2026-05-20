@@ -1,5 +1,5 @@
 # This file tells Git which files shouldn't be added to source control
-
+*.iml
 .idea
 dist
 node_modules
@@ -7,3 +7,6 @@ apify_storage
 crawlee_storage
 storage
 search-pages
+.env*
+!.env.example
+.run

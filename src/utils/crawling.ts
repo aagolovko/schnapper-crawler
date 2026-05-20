@@ -88,6 +88,7 @@ export async function crawling() {
 
     // @ts-ignore
     async function browserPage({enqueueLinks, page, request}) {
+
         log.info(`Handling page: ${page.url()}`)
 
         await sleep(PAUSE_MS * 5)

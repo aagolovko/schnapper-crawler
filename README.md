@@ -1,112 +1,103 @@
-# Intro
-This code crawl the kleinanzeigen web page for specific keywords like "regentonne" and  persists the results.
+# Kleinanzeigen Crawler
 
-# Technical implementation
-The selenium framework is used to crawl to make the behaviour of the crawler more human-like and to avoid blocking by the web page.
-The data fetched is persisted in a mongodb as JSON. Another component provide access to the 
-database over GraphQL which finally is visualized in a web application.
+This project crawls search result pages on kleinanzeigen.de for configured keywords and locations, stores the results in MongoDB, and keeps article metadata up to date over time.
 
-# Algorithm
-The algorithm for crawling is as follows:
-- fetch the landing page of the kleinanzeigen.de
-- enter keyword/location/distance for search, submit search form
-- fetch items, fetch next results pages 
-- do the same for futher results pages
-- for each itme fetch details page, extract details, persist in database
+## Motivation
 
+Manual browsing is slow when you track many keywords and regions. This crawler automates repetitive checks and helps you:
 
-# Tools
+- monitor new listings continuously,
+- keep a searchable local dataset,
+- enrich listings with geocoding for map and distance use cases,
+- build downstream tools (dashboards, alerts, map views).
 
-clean up npm caches:
+## Tech Stack
+
+- Runtime: Node.js + TypeScript (ESM)
+- Crawling: Crawlee + Playwright
+- Parsing: node-html-parser
+- Persistence: MongoDB
+- Utilities: dotenv-flow, uuid, node-geocoder
+
+## How It Works
+
+1. Load active search profiles from MongoDB.
+2. Expand them into concrete search requests (keyword + area + distance).
+3. Crawl search result pages and parse listing data.
+4. Insert new listings or update existing ones.
+5. Track request metadata (`lastSearch`, counters) for scheduling behavior.
+
+The main entry point is `src/main.ts`.
+
+## Project Structure
+
+- `src/main.ts`: crawler flow orchestration
+- `src/utils/crawling.ts`: request creation, page handling, DB upsert logic
+- `src/utils/parseSearchPage.ts`: HTML parsing and extraction
+- `src/geolocating.ts`: geocode unresolved locations and cache results
+- `src/cleaning.ts`: maintenance checks for favorite listings
+- `src/services/database.service.ts`: MongoDB connection and collection setup
+
+## Prerequisites
+
+- Node.js 20 (see `.nvmrc`)
+- MongoDB running locally or reachable from your environment
+
+Example local MongoDB:
+
+```bash
+docker run -d -p 27017:27017 --name kleinanzeigen-mongo mongo:latest
 ```
-npm config set fund false --location=global
 
-rm -rf node_modules package-lock.json
-npm cache clean --force
+## Installation
+
+```bash
 npm install
 npx playwright install --with-deps
 ```
 
-nvm updates to fix "EBADENGINE":
-```
-nvm install 20
-nvm use 20
-echo "20" > .nvmrc
-```
+## Configuration
 
+Environment files are loaded with `dotenv-flow`.
 
+Current keys used by the app:
 
-# actually we should avoid this, but sometimes:
-use kleinanzeigen
+- `DB_NAME`
+- `ARTICLES_COLLECTION_NAME`
 
-# set emmpty object to "null", run "02. geolocatin" 
-db.articles.updateMany({locationGeocoded: {}}, {$set: {locationGeocoded: null}} )
+Connection string is currently configured in `src/environments/environment.prod.ts`.
 
-# if both ignored/favorite is set, remove favorite flag and reconsider items
-db.articles.updateMany({isIgnored: true, isFavorite: true}, {$set: {isIgnored: true, isFavorite: null}} )
+Copy and adjust values:
 
-{ lastSearch: { $exists: true } }
-
-
-# for debugging with break points
-{
-    $or: [
-        { lastChecked: { $exists: true } },
-        { href: "/s-anzeige/ondis24-regentonne-mit-deckel-500-liter-wasserhahn-mit-filter/2786692625-87-5981" }
-    ]
-}
-
-
-{
-    $or: [
-        { lastChecked: { $gt: ISODate("2024-06-14T14:09:14.042+00:00") } }
-    ]
-}
-
-# remove articles found for specific keyword
-db.articles.deleteMany({searchKeywords: {$in: ['Mighty Plus']}})
-
-# add "last checked" field to avoid deletion of item not too often
-# add UI to remove articles for keyword
-# fix: "84072 Bayern - Au" changed to "84072 Au" and geocoded to schweiz
-live
-* proble: failed detect isDeleted "/s-anzeige/ivar-regal-zu-verschenken/2536126591-192-6350" 
-
-* do not save items, if too away. detect "Alternative Anzeigen in der Umgebung" and skip items after it
-* repo for the code
-* create SJON with search requests, save search request in dB 
-* save items found in db
-* generate KML with all results form dB
-* vizualize results on map, click to mark items as "not-interesing" or "interesting"
-* special vizual code for "zum verschenken" or low price.
-
-* statistics for crawler: last time search for keyword, new items found for search etc.
-
-* generate mongodb UI: https://retool.com/blog/build-a-mongodb-gui-in-minutes/
-
-* convert address to location with google
-* fetch links to the next search pages
-* use json as input for the search
-* save crawling results to database
-* convert Article to geoJson, convert geoJson to KML format
-* re-think the architecture for mining, probably use crawlee cloud
-
-
-docker run -d -p 27017:27017 --name kleinanzeigen-mongo mongo:latest
-
-# Getting started with Crawlee
-
-This example uses `PlaywrightCrawler` to recursively crawl https://crawlee.dev using the browser automation library [Playwright](https://playwright.dev).
-
-You can find more examples and documentation at the following links:
-
-- [Step-by-step tutorial](https://crawlee.dev/docs/introduction) for Crawlee
-- `PlaywrightCrawler` [API documentation](https://crawlee.dev/api/playwright-crawler/class/PlaywrightCrawler)
-- Other [examples](https://crawlee.dev/docs/examples/playwright-crawler)
-
-
-XPath selector in chrome:
-```
-//button[@id="gdpr-banner-accept"]
+```bash
+cp .env.example .env.local
 ```
 
+## Run
+
+```bash
+npm run start:local
+```
+
+Other scripts:
+
+- `npm run start:prod`
+- `npm run start:dev:geolocating`
+- `npm run build`
+
+## Data Model (Collections)
+
+- `articles`: crawled listing data
+- `searchProfiles`: search configuration inputs
+- `searchRequests`: generated request runs and timestamps
+- `geocodingLocations`: cached geocoding results
+
+## Notes
+
+- Crawl behavior can be tuned in `src/config.ts` (headless mode, delays, filters).
+- HTML selector resilience is handled with fallback selectors in the parser.
+- Developer troubleshooting tips are in `docs/dev-notes.md`.
+
+## Disclaimer
+
+Use this crawler responsibly and in accordance with the target website terms and applicable law.

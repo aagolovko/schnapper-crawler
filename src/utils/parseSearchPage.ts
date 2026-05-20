@@ -28,7 +28,8 @@ export function parseSearchPage(searchPagePath: string): Article[] {
     for (const el of articles) {
         let href = el.querySelector('.text-module-begin a')?.getAttribute('href')
         if (!href) {
-            href = el.querySelector('.text-module-begin span')?.getAttribute('data-url')
+            // href = el.querySelector('.text-module-begin span')?.getAttribute('data-url')
+            href = el.getAttribute("data-href")
         }
         log.debug(`Handling article with href ${href}`);
 
@@ -41,8 +42,14 @@ export function parseSearchPage(searchPagePath: string): Article[] {
 
         const location = el.querySelector('div .aditem-main--top--left i')?.nextSibling?.innerText?.replace(/\n/gi, ' ').replace(/\s+/gi, ' ').replace(/\(.*\)+/gi, ' ').trim()
 
-        const createdOn = el.querySelector('.aditem-main--top--right i')?.nextSibling?.innerText?.replace(/\n/gi, ' ').replace(/\s+/gi, ' ').trim()
+        let createdOn = el.querySelector('.aditem-main--top--right i')?.nextSibling?.innerText?.replace(/\n/gi, ' ').replace(/\s+/gi, ' ').trim()
 
+        if (!createdOn) {
+            createdOn = el
+                .querySelector('svg[data-title="calendarOutline"] + span')
+                ?.textContent
+                .trim();
+        }
         if (!createdOn) {
             log.warning(`Failed to resolve "createdOn", href ${href}`);
             continue

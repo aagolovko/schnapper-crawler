@@ -26,11 +26,10 @@ export function parseSearchPage(searchPagePath: string): Article[] {
     const articlesJson: Article[] = []
 
     for (const el of articles) {
-        let href = el.querySelector('.text-module-begin a')?.getAttribute('href')
-        if (!href) {
-            // href = el.querySelector('.text-module-begin span')?.getAttribute('data-url')
-            href = el.getAttribute("data-href")
-        }
+        const href = el.getAttribute("data-href")
+            || el.querySelector('h3 a')?.getAttribute('href')
+            || el.querySelector('.text-module-begin a')?.getAttribute('href')
+            || el.querySelector('.text-module-begin span')?.getAttribute('data-url')
         log.debug(`Handling article with href ${href}`);
 
         const hrefImageTry1 = el.querySelector('img')?.getAttribute('src')?.replace(/ 2x/gi, '').trim()
@@ -40,7 +39,8 @@ export function parseSearchPage(searchPagePath: string): Article[] {
             log.debug(`Failed to resolve hrefImage for ${href}`);
         }
 
-        const location = el.querySelector('div .aditem-main--top--left i')?.nextSibling?.innerText?.replace(/\n/gi, ' ').replace(/\s+/gi, ' ').replace(/\(.*\)+/gi, ' ').trim()
+        const location = el.querySelector('svg[data-title="locationOutline"] + span')?.textContent?.replace(/\n/gi, ' ').replace(/\s+/gi, ' ').replace(/\(.*\)+/gi, ' ').trim()
+            || el.querySelector('div .aditem-main--top--left i')?.nextSibling?.innerText?.replace(/\n/gi, ' ').replace(/\s+/gi, ' ').replace(/\(.*\)+/gi, ' ').trim()
 
         let createdOn = el.querySelector('.aditem-main--top--right i')?.nextSibling?.innerText?.replace(/\n/gi, ' ').replace(/\s+/gi, ' ').trim()
 
@@ -84,7 +84,10 @@ export function parseSearchPage(searchPagePath: string): Article[] {
         const isShipping = isShippingStr != undefined ? true : false
 
 
-        let title = el.querySelector('.text-module-begin a')?.innerText
+        let title = el.querySelector('h3 a')?.textContent?.trim()
+        if (!title) {
+            title = el.querySelector('.text-module-begin a')?.innerText
+        }
         if (!title) {
             title = el.querySelector('.text-module-begin span')?.innerText
         }

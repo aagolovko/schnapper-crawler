@@ -3,7 +3,7 @@
 import {parse} from 'node-html-parser';
 
 import {log} from "crawlee";
-import {Article} from '../models/article';
+import type {Article} from '../models/article.ts';
 import * as fs from "fs";
 import {WAIT_FOR_SELECTOR} from "../config.ts";
 
@@ -108,5 +108,3 @@ export function parseSearchPage(searchPagePath: string): Article[] {
 
     return articlesJson
 }
-
-

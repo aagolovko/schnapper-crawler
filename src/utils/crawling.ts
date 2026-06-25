@@ -16,8 +16,8 @@ import {collections} from "../services/database.service.ts";
 import {SearchPage} from "../pages/searchPage.ts";
 import {writeFileSync} from "fs";
 import {parseSearchPage} from "./parseSearchPage.ts";
-import {Article} from "../models/article";
-import {SearchRequest} from "../models/searchRequest";
+import type {Article} from "../models/article.ts";
+import type {SearchRequest} from "../models/searchRequest.ts";
 
 // Helper to insert or update a search request and perform cleanup of old articles
 const updateOrInsertSearchRequest = async (searchRequest: SearchRequest) => {
@@ -214,5 +214,3 @@ export async function findSearchRequests() {
 
     return searchRequests
 }
-
-

@@ -1,5 +1,5 @@
 import {collections, connectToDatabase} from "./services/database.service.ts";
-import {Article} from "./models/article";
+import type {Article} from "./models/article.ts";
 import {log} from "crawlee";
 import {crawlForArticle} from "./utils/crawlForArticle.ts";
 

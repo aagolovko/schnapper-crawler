@@ -1,5 +1,5 @@
 import {ObjectId} from "mongodb";
-import {SearchLocation} from "./searchLocation.ts";
+import type {SearchLocation} from "./searchLocation.ts";
 
 export interface SearchProfile {
     // TODO: remove, we have _id

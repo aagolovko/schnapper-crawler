@@ -59,7 +59,20 @@ export class ItemDetailsPage {
     /** Retrieve the price element (if the page contains a price). */
     async getPrice(): Promise<string | null> {
         const root = await this.getRoot();
-        const priceEl = root.querySelector('.viewad-price') || root.querySelector('.aditem-main--middle--price-shipping--price');
-        return priceEl?.innerText?.trim() ?? null;
+        const priceEl =
+            root.querySelector('#viewad-price') ||
+            root.querySelector('.viewad-price') ||
+            root.querySelector('.boxedarticle--price') ||
+            root.querySelector('.aditem-main--middle--price-shipping--price') ||
+            root.querySelector('[itemprop="price"]') ||
+            root.querySelector('meta[property="product:price:amount"]') ||
+            root.querySelector('meta[itemprop="price"]');
+
+        if (!priceEl) {
+            return null;
+        }
+
+        const metaContent = priceEl.getAttribute?.('content');
+        return (metaContent ?? priceEl.innerText ?? priceEl.textContent ?? null)?.trim() ?? null;
     }
 }

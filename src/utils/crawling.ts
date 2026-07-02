@@ -126,21 +126,27 @@ export async function crawling() {
 
 function handleArticle(searchKeyword: string, articleDb: Article | null, articleWeb: Article) {
     if (articleDb) {
-        if (!articleWeb.searchKeywords) {
-            articleWeb.searchKeywords = []
-        }
-
-        if (!articleWeb.searchKeywords.includes(searchKeyword)) {
-            articleWeb.searchKeywords.push(searchKeyword)
-        }
+        const searchKeywords = new Set([
+            ...(articleDb.searchKeywords || []),
+            ...(articleWeb.searchKeywords || []),
+            searchKeyword,
+        ]);
+        const updateFields: Partial<Article> = {
+            lastChecked: new Date(),
+            hrefImage: articleWeb.hrefImage ?? articleDb.hrefImage,
+            title: articleWeb.title ?? articleDb.title,
+            price: articleWeb.price ?? articleDb.price,
+            priceEur: articleWeb.priceEur ?? articleDb.priceEur,
+            location: articleWeb.location ?? articleDb.location,
+            createdOn: articleWeb.createdOn ?? articleDb.createdOn,
+            isShipping: articleWeb.isShipping ?? articleDb.isShipping,
+            locationGeocoded: articleWeb.locationGeocoded ?? articleDb.locationGeocoded,
+            searchKeywords: Array.from(searchKeywords),
+        };
 
         try {
             collections.articles?.updateMany({href: articleDb.href}, {
-                $set: {
-                    lastChecked: new Date(),
-                    ...articleWeb,
-                    ...articleDb,
-                }
+                $set: updateFields,
             }).then(
                 (it) => {
                     log.debug(`Updated article (keywords), href ${articleWeb.href}, ${articleWeb.location}, ack ${it.acknowledged}`)

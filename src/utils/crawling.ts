@@ -54,6 +54,24 @@ const plz2InternalID: { [key: string]: string } = {
     "81375": "l6414"
 }
 
+function escapeRegex(value: string): string {
+    return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function hasExactWord(text: string, keyword: string): boolean {
+    const trimmedKeyword = keyword.trim();
+    if (!trimmedKeyword) {
+        return false;
+    }
+
+    const pattern = new RegExp(
+        `(^|[^\\p{L}\\p{N}])${escapeRegex(trimmedKeyword)}([^\\p{L}\\p{N}]|$)`,
+        'iu'
+    );
+
+    return pattern.test(text);
+}
+
 export async function crawling() {
 
     const requestQueue = await RequestQueue.open(`rq-${uuidv4()}`)
@@ -111,10 +129,15 @@ export async function crawling() {
 
         const searchRequest = request.userData?.searchRequest as SearchRequest;
         const searchPageFile = await cacheSearchResults(landing, searchRequest);
-        const articles: Article[] = parseSearchPage(searchPageFile);
+        const parsedArticles: Article[] = parseSearchPage(searchPageFile);
+        const articles = parsedArticles.filter((article) =>
+            hasExactWord(article.title ?? '', searchRequest.keyword)
+        );
 
         const url = await landing.getUrl();
-        log.info(`Articles found on the page ${url}: ${articles.length}`)
+        log.info(
+            `Articles found on the page ${url}: ${articles.length} of ${parsedArticles.length} after exact-word filter`
+        )
 
         for (const article of articles) {
             const articleDb = await collections.articles!!.findOne({href: article.href})

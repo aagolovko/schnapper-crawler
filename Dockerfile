@@ -28,13 +28,12 @@ COPY --from=builder --chown=myuser /home/myuser/dist ./dist
 # to speed up the build using Docker layer cache.
 COPY --chown=myuser package*.json ./
 
-# Install NPM packages, skip optional and development dependencies to
-# keep the image small. Avoid logging too much and print the dependency
-# tree for debugging
+# Install NPM packages including dev dependencies so `start:local` can run
+# in the cluster image without a separate debug build.
 RUN npm --quiet set progress=false \
-    && npm install --omit=dev --omit=optional \
+    && npm ci --include=dev --omit=optional \
     && echo "Installed NPM packages:" \
-    && (npm list --omit=dev --all || true) \
+    && (npm list --all || true) \
     && echo "Node.js version:" \
     && node --version \
     && echo "NPM version:" \
@@ -46,6 +45,6 @@ RUN npm --quiet set progress=false \
 COPY --chown=myuser . ./
 
 
-# Run the image. If you know you won't need headful browsers,
-# you can remove the XVFB start script for a micro perf gain.
-CMD ./start_xvfb_and_run_cmd.sh && npm run start:prod --silent
+# Run the local entrypoint by default; Kubernetes overrides this with the
+# same command, and local debugging stays consistent.
+CMD npm run start:local --silent

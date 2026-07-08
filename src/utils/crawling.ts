@@ -15,6 +15,7 @@ import {
 import {collections} from "../services/database.service.ts";
 import {SearchPage} from "../pages/searchPage.ts";
 import {writeFileSync} from "fs";
+import {mkdirSync} from "fs";
 import {parseSearchPage} from "./parseSearchPage.ts";
 import type {Article} from "../models/article.ts";
 import type {SearchRequest} from "../models/searchRequest.ts";
@@ -101,6 +102,7 @@ export async function crawling() {
             const splitted = url.split('/');
             const fileName = splitted.length <= 4 ? searchRequest.keyword : splitted.slice(3).join('-').replaceAll(':', '-');
             const searchPageFile = `search-pages/${fileName}.html`;
+            mkdirSync("search-pages", {recursive: true});
             const content = await landing.getContent();
             writeFileSync(searchPageFile, content);
             return searchPageFile;

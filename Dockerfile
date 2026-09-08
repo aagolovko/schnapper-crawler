@@ -1,8 +1,8 @@
-FROM apify/actor-node-playwright-chrome:20
+FROM mcr.microsoft.com/playwright:v1.58.2-noble
 
-WORKDIR /home/myuser
+WORKDIR /home/pwuser
 
-COPY --chown=myuser package*.json ./
+COPY --chown=pwuser:pwuser package*.json ./
 
 RUN npm --quiet set progress=false \
     && npm ci --include=dev --omit=optional \
@@ -13,6 +13,8 @@ RUN npm --quiet set progress=false \
     && echo "NPM version:" \
     && npm --version
 
-COPY --chown=myuser . ./
+COPY --chown=pwuser:pwuser . ./
+
+USER pwuser
 
 CMD npm run start:local --silent
